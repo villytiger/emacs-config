@@ -16,3 +16,6 @@
 [submodule "llama"]
 	path = lib/llama
 	url = https://git.sr.ht/~tarsius/llama
+[submodule "meow"]
+	path = lib/meow
+	url = https://github.com/meow-edit/meow
