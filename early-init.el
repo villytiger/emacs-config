@@ -1,10 +1,11 @@
 ;;; early-init.el -*- lexical-binding: t; -*-
 
-;;(setq gc-cons-threshold most-positive-fixnum)
+;; Disable GC while starting up.
+(setq vt-gc-cons-threshold gc-cons-threshold)
+(setq gc-cons-threshold most-positive-fixnum)
 
-;; Disable built-in package.el. Borg is used instead.
+;; Disable built-in package.el in favor of Borg.
 (setq package-enable-at-startup nil)
 
-;; Let it be maximized. Surprisingly, this line in early-init.el also reduces init time.
+;; Let it be maximized.
 (add-to-list 'initial-frame-alist '(fullscreen . maximized))
-
