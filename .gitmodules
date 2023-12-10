@@ -1,3 +1,6 @@
+[submodule "autothemer"]
+	path = lib/autothemer
+	url = https://github.com/jasonm23/autothemer
 [submodule "borg"]
 	path = lib/borg
 	url = git@github.com:emacscollective/borg.git
@@ -7,12 +10,18 @@
 [submodule "compat"]
 	path = lib/compat
 	url = git@github.com:emacs-compat/compat.git
+[submodule "dash"]
+	path = lib/dash
+	url = https://github.com/magnars/dash.el
 [submodule "emacsql"]
 	path = lib/emacsql
 	url = git@github.com:magit/emacsql.git
 [submodule "epkg"]
 	path = lib/epkg
 	url = git@github.com:emacscollective/epkg.git
+[submodule "gruvbox-theme"]
+	path = lib/gruvbox-theme
+	url = https://github.com/greduan/emacs-theme-gruvbox
 [submodule "llama"]
 	path = lib/llama
 	url = https://git.sr.ht/~tarsius/llama
