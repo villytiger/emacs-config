@@ -1,0 +1,38 @@
+* Emacs configs
+
+https://www.reddit.com/r/emacs/comments/12mfq9o/doom_vanilla_emacs_29/
+https://github.com/milanglacier/dotemacs
+https://github.com/jimeh/.emacs.d
+https://git.sr.ht/~ashton314/emacs-bedrock/tree
+
+meow
+https://github.com/DogLooksGood/dogEmacs/
+https://github.com/turbana/emacs-config
+
+borg
+https://github.com/thblt/.emacs.d
+https://github.com/Elilif/.elemacs/
+
+https://github.com/patrickt/emacs
+https://github.com/susam/emfy
+https://github.com/daviwil/emacs-from-scratch
+
+* Install packages
+** borg
+- Small wrapper around git submodules
+** straight
+- Most popular solution
+** elpaca
+- Solves some problems with straight
+** package
+- Built-in
+- Primitive
+
+* Setup packages
+** use-package
+- Built-in
+- The most popular
+- Other packages promise to solve some problems with use-package
+  But it's not clear what these problems are. It seems that everybody is happy with use-package.
+** leaf
+** setup
