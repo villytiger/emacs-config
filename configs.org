@@ -16,6 +16,11 @@ https://github.com/Elilif/.elemacs/
 https://github.com/patrickt/emacs
 https://github.com/susam/emfy
 https://github.com/daviwil/emacs-from-scratch
+https://protesilaos.com/emacs/dotemacs
+
+https://github.com/emacs-tw/awesome-emacs
+https://github.com/p3r7/awesome-elisp
+https://www.reddit.com/r/emacs/comments/w4gxoa/what_are_some_musthave_packages_for_emacs/
 
 * Install packages
 ** borg
@@ -36,3 +41,22 @@ https://github.com/daviwil/emacs-from-scratch
   But it's not clear what these problems are. It seems that everybody is happy with use-package.
 ** leaf
 ** setup
+
+* Splash screens
+** welcome.el
+** dashboard
+** scratch-mode
+** kisses
+** splash-screen
+
+* Popup windows
+** https://github.com/karthink/popper
+** https://github.com/emacsorphanage/popwin
+** https://github.com/doomemacs/doomemacs/blob/master/modules/ui/popup/config.el
+** https://github.com/aaronjensen/emacs-popup-mode/
+
+* Undo
+** vundo
+- Using built-in system
+- More lightweight than undo-tree
+** undo-tree

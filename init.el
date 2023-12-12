@@ -8,20 +8,11 @@
   :config
   (when (native-comp-available-p)
     (setq borg-compile-function #'borg-byte+native-compile))
-  ;; Override borg-activate to disable autoloading.
-  ;; Don't clutter emacs with unused packages.
-  ;; Let use-package do its job.
-  (defun borg-activate (clone)
-    "Activate the clone named CLONE.
-
-Add the appropriate directories to `load-path' and
-`Info-directory-list'."
-    (interactive (list (borg-read-clone "Activate clone: ")))
-    (dolist (dir (borg-load-path clone))
-      (add-to-list 'load-path dir))
-    (dolist (dir (borg-info-path clone))
-      (push  dir Info-directory-list)))
   (borg-initialize))
+
+(use-package meow
+ :config
+ (load (expand-file-name "meow" user-emacs-directory)))
 
 (use-package gruvbox-theme
  :config
@@ -31,9 +22,47 @@ Add the appropriate directories to `load-path' and
  :config
  (dashboard-setup-startup-hook))
 
-(use-package meow
- :config
- (load (expand-file-name "meow" user-emacs-directory)))
+(use-package doom-modeline
+  :config
+  (doom-modeline-mode 1))
+
+(use-package nyan-mode
+  :config
+  (nyan-mode 1))
+
+(use-package shackle
+  :config
+  (setq shackle-rules
+	'(("^\\*\\([Hh]elp\\|Apropos\\)"
+	   :regexp t :select t)))
+  (shackle-mode))
+
+(use-package helpful
+  :bind
+  ;; Note that the built-in `describe-function' includes both functions
+  ;; and macros. `helpful-function' is functions only, so we provide
+  ;; `helpful-callable' as a drop-in replacement.
+  ("C-h f" . helpful-callable)
+  ("C-h v" . helpful-variable)
+  ("C-h k" . helpful-key)
+  ("C-h x" . helpful-command)
+  ;; Lookup the current symbol at point. C-c C-d is a common keybinding
+  ;; for this in lisp modes.
+  ("C-c C-d" . helpful-at-point)
+  ;; Look up *F*unctions (excludes macros).
+  ;;
+  ;; By default, C-h F is bound to `Info-goto-emacs-command-node'. Helpful
+  ;; already links to the manual, if a function is referenced there.
+  ("C-h F" .  helpful-function))
+
+(use-package marginalia
+  :config
+  (marginalia-mode))
+
+(use-package icomplete
+  :no-require
+  :config
+  (icomplete-vertical-mode))
 
 ;; (setq org-directory "~/cloud/mobile/org")
 ;; (setq org-roam-directory org-directory)
