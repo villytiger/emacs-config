@@ -1,6 +1,13 @@
 ;;; -*- lexical-binding: t; -*-
 
-(setq display-line-numbers-type t)
+;; (setq display-line-numbers-type t)
+
+(setopt
+ completion-ignore-case t
+ read-buffer-completion-ignore-case t
+ read-file-name-completion-ignore-case t
+ column-number-mode t
+ blink-cursor-mode nil)
 
 (require 'elpaca-bootstrap)
 (elpaca elpaca-use-package (elpaca-use-package-mode))
@@ -10,27 +17,36 @@
   :elpaca t)
 (elpaca-wait)
 
-;; (use-package emacs
-;;   :
-;;   (define-custom-command tig-menu-map)
-;;   (define-custom-command tig-file-menu-map)
-;;   (general-def tig-menu-map
-;;     "f" '("files" . tig-file-menu-map)))
+(use-package emacs
+  :general
+  (:prefix-command 'arete-menu-map))
 
 (use-package emacs
   :general
-  (:prefix-command 'tig-menu-map))
-
-(use-package emacs
-  :general
-  (:prefix-command 'tig-file-menu-map
-		   "f" 'find-file
-		   "s" 'save-buffer)
+  (:prefix-command 'arete-file-menu-map
+		   "f" '("Find file" . find-file)
+		   "s" '("Save file" . save-buffer)
+		   "S" '("Save file as..." . write-file))
   :config
   ;; Bind prefixes after they are defined in :general section,
   ;; otherwise general creates a placeholder that hides a prefix command.
   ;; Here, we define a custom string replacement as it is recommended by which-key.
-  (general-def tig-menu-map "f" '("files" . tig-file-menu-map)))
+  (general-def arete-menu-map "f" '("Files" . arete-file-menu-map)))
+
+(use-package emacs
+  :general
+  (:prefix-command 'arete-help-menu-map
+		   "B" '("Describe bindings" . describe-bindings)
+   ;; Note that the built-in `describe-function' includes both functions
+   ;; and macros. `helpful-function' is functions only, so we provide
+   ;; `helpful-callable' as a drop-in replacement.
+   "f" '("Describe callable" . describe-function)
+   "k" '("Describe key" . describe-key)
+   "o" '("Describe symbol" . describe-symbol)
+   "v" '("Describe variable" . describe-variable)
+   "x" '("Describe command" . describe-command))
+  :config
+  (general-def arete-menu-map "h" '("Help" . arete-help-menu-map)))
 
 (use-package which-key
   :elpaca t
@@ -43,7 +59,7 @@
   (:keymaps '(meow-normal-state-keymap
 	      meow-motion-state-keymap)
 	    "<menu>" 'meow-keypad
-	    "SPC" 'tig-menu-map)
+	    "SPC" 'arete-menu-map)
   (meow-motion-state-keymap
    "j" 'meow-next
    "k" 'meow-prev
@@ -168,106 +184,112 @@
 ;; 	   :select t)))
 ;;   (shackle-mode))
 
+;; TODO: add go-back and go-forward.
+;; See https://github.com/Wilfred/helpful/issues/250.
 (use-package helpful
   :elpaca t
-  :bind
-  ;; Note that the built-in `describe-function' includes both functions
-  ;; and macros. `helpful-function' is functions only, so we provide
-  ;; `helpful-callable' as a drop-in replacement.
-  ("C-h f" . helpful-callable)
-  ("C-h v" . helpful-variable)
-  ("C-h k" . helpful-key)
-  ("C-h x" . helpful-command)
-  ;; Lookup the current symbol at point. C-c C-d is a common keybinding
-  ;; for this in lisp modes.
-  ("C-c C-d" . helpful-at-point)
-  ;; Look up *F*unctions (excludes macros).
-  ;;
-  ;; By default, C-h F is bound to `Info-goto-emacs-command-node'. Helpful
-  ;; already links to the manual, if a function is referenced there.
-  ("C-h F" .  helpful-function))
+  :general
+  (arete-help-menu-map
+   "F" '("Describe function" . helpful-function)
+   "d" '("Describe at point" . helpful-at-point))
+  ([remap describe-command] #'helpful-command
+   ;; Note that the built-in `describe-function' includes both functions
+   ;; and macros. `helpful-function' is functions only, so we provide
+   ;; `helpful-callable' as a drop-in replacement.
+   [remap describe-function] #'helpful-callable
+   [remap describe-key] #'helpful-key
+   [remap describe-symbol] #'helpful-symbol
+   [remap describe-variable] #'helpful-variable)
+  :custom
+  (helpful-switch-buffer-function #'+helpful-switch-to-buffer)
+  :config
+  ;; https://d12frosted.io/posts/2019-06-26-emacs-helpful.html
+  (defun +helpful-switch-to-buffer (buffer-or-name)
+  "Switch to helpful BUFFER-OR-NAME.
+
+The logic is simple, if we are currently in the helpful buffer,
+reuse it's window, otherwise create new one."
+  (if (eq major-mode 'helpful-mode)
+      (switch-to-buffer buffer-or-name)
+    (pop-to-buffer buffer-or-name))))
+
+(use-package savehist
+  :no-require
+  :custom
+  (savehist-mode t))
 
 (use-package marginalia
   :elpaca t
-  :init  
-  (setopt marginalia-mode t))
+  :custom
+  (marginalia-mode t)
+  :config
+  ;; https://github.com/minad/marginalia/issues/155
+  ;; https://github.com/minad/marginalia/tree/mode-state
+  (defun +marginalia--mode-state (mode)
+    "Return MODE state string."
+    (if (and (boundp mode) (symbol-value mode))
+        #(" [On]" 1 5 (face marginalia-key))
+      #(" [Off]" 1 6 (face marginalia-key))))
+  (defun +marginalia-annotate-command-with-mode (orig cand)
+    "Annotate command CAND with its documentation string.
+Similar to `marginalia-annotate-command`, but also includes mode state."
+    (concat
+     (when-let ((mode (string-suffix-p "-mode" cand))
+		(sym (intern-soft cand)))
+       (+marginalia--mode-state sym))
+     (funcall orig cand)))
+  (advice-add #'marginalia-annotate-command
+	      :around #'+marginalia-annotate-command-with-mode))
 
 (use-package hotfuzz
   :elpaca t
-  :init
-  (setopt completion-styles '(basic hotfuzz)))
+  :general
+  (vertico-map
+   "SPC" 'minibuffer-complete-word)
+  :custom
+  ;; Some functionality works only with basic completion.
+  ;; Basic should go first, otherwise history doesn't work.
+  (completion-styles '(basic hotfuzz))
+  (completion-category-defaults nil)
+  (completion-category-overrides
+   '((file (styles basic partial-completion hotfuzz)))))
 
-(use-package icomplete
-  :no-require
-  :hook (emacs-startup . icomplete-mode)
-  :bind
-  (:map icomplete-vertical-mode-minibuffer-map
-	("<return>" . icomplete-force-complete-and-exit)
-	("C-<return>" . minibuffer-complete-and-exit))
-  :init
-  (setopt icomplete-vertical-mode t
-	  icomplete-show-matches-on-no-input t
-	  completion-auto-help nil))
+(use-package vertico
+  :elpaca t
+  :custom
+  (vertico-mode t))
 
-(use-package org-mode
+;; TODO: embark-consult.
+(use-package embark
+  :elpaca t
+  :general
+  ("M-SPC" 'embark-act)
+  (arete-help-menu-map
+   "b" '("Select biniding" . embark-bindings))
+  :custom
+  (prefix-help-command 'embark-prefix-help-command))
+
+;; (use-package icomplete
+;;   :no-require
+;;   :hook (emacs-startup . icomplete-mode)
+;;   :bind
+;;   (:map icomplete-vertical-mode-minibuffer-map
+;; 	("<return>" . icomplete-force-complete-and-exit)
+;; 	("C-<return>" . minibuffer-complete-and-exit))
+;;   :init
+;;   (setopt icomplete-vertical-mode t
+;; 	  icomplete-show-matches-on-no-input t
+;; 	  completion-auto-help nil))
+
+(use-package org
   :no-require
   :general
-  (:prefix-command 'tig-notes-menu-map)
+  (:prefix-command 'arete-notes-menu-map
+		   "a" '("Agenda" . org-agenda))
   :custom
   (org-directory "~/cloud/mobile/org")
   :config
-  (general-def tig-menu-map "n" '("notes" . tig-notes-menu-map)))
-
-;; (general-define-key
-;;  :keymaps 'mode-specific-map
-;;  ;; :which-key "Org"
-;;  :prefix-command 'my-map3
-;;  :prefix-name "org"
-;;  :prefix "n"
-;;  :def "sad" 'my-map3)
-;;  ;; "" '(nil :which-key "Org"))
-
-;; (general-def
-;;   :keymaps 'meow-normal-state-keymap
-;;   "<menu>" 'meow-keypad)
-
-;; (general-def
-;;   :keymaps 'meow-normal-state-keymap
-;;   :prefix "SPC"
-;;   :prefix-command 'tig-normal-state-map)
-
-;; (general-def
-;;   :prefix 'tig-normal-state-map
-;;   "v"
-;;   :prefix-command 'tig-menu-file-map)
-
-;; (general-def
-;;   :prefix-command 'tig-normal-state-map
-;;   "f s" 'find-file)
-
-;; (general-def
-;;   :prefix-map 'test-map
-;;   :prefix-name "test qwe")
-
-;; (general-def
-;;   :keymaps 'mode-specific-map
-;;   "v"
-;;   (cons "test asd" test-map))
-
-;; (define-key mode-specific-map "AltGr" "bar-prefix asd" 'my-map3)
-
-;; (general-define-key
-;;  ;; :keymaps 'mode-specific-map
-;;  ;; :wk-full-keys nil
-;;  :prefix "<menu>"
-;;  :prefix-map 'mode-specific-map)
-;;  ;; make a prefix-command and add description
-;;  ;; "" '(:ignore t :which-key "hasd qwer"))
-
-;; (setq my-map2 (make-sparse-keymap))
-;; (define-key mode-specific-map "b" (cons "bar-prefix" my-map2))
-
-;; (which-key-add-key-based-replacements "C-c n" "Org")
+  (general-def arete-menu-map "n" '("Notes" . arete-notes-menu-map)))
 
 (defun +org-roam/format-width-a (node template)
   "Advice that fixes two issues with format functions:
@@ -284,53 +306,52 @@ the resulting string becomes wider than needed."
 
 (use-package org-roam
   :elpaca t
+  :after org
   :general
-  (:prefix-command 'tig-roam-menu-map
-   "f" 'org-roam-node-find
-   "i" 'org-roam-insert
-   "r" 'org-roam-buffer-toggle)
-  (:prefix-command 'tig-dailies-menu-map
-		   "t" 'org-roam-dailies-goto-today
-		   "m" 'org-roam-dailies-goto-tomorrow
-		   "y" 'org-roam-dailies-goto-yesterday)
+  (:prefix-command 'arete-roam-menu-map
+   "f" '("Find node" . org-roam-node-find)
+   "i" '("Insert node" . org-roam-insert)
+   "r" '("Toggle roam buffer" . org-roam-buffer-toggle))
+  (:prefix-command 'arete-dailies-menu-map
+		   "t" '("Goto today" . org-roam-dailies-goto-today)
+		   "m" '("Goto tomorrow" . org-roam-dailies-goto-tomorrow)
+		   "y" '("Goto yesterday" . org-roam-dailies-goto-yesterday))
   :custom
   (org-roam-directory "~/cloud/mobile/org")
   (org-roam-dailies-directory "logbook")
   (org-roam-completion-everywhere t)
   (org-roam-node-display-template
    (concat "${title:*} " (propertize "${tags}" 'face 'org-tag)))
+  :init
+  (general-def arete-notes-menu-map "r" '("Roam" . arete-roam-menu-map))
+  (general-def arete-notes-menu-map "d" '("Dailies" . arete-dailies-menu-map))
   :config
   (advice-add 'org-roam-node-read--to-candidate
 	      :override '+org-roam/format-width-a)
-  (org-roam-db-autosync-mode t)
-  (general-def tig-notes-menu-map "r" '("roam" . tig-roam-menu-map))
-  (general-def tig-notes-menu-map "d" '("dailies" . tig-dailies-menu-map)))
+  (org-roam-db-autosync-mode t))
 
 (use-package consult-org-roam
   :elpaca t
   :after org-roam
-  ;; :bind
-  ;; (("C-c n r e" . consult-org-roam-file-find))
   :init
   ;; It enables live preview for org-roam commands.
   (setopt consult-org-roam-mode t))
 
 (use-package edebug
   :no-require
-  :bind
-  ;; Default key binding using SPC is not compatible with Meow.
-  (:map edebug-mode-map ("s" . edebug-step-mode)))
-
-;; (setq org-directory "~/cloud/mobile/org")
-;; (setq org-roam-directory org-directory)
-;; (setq org-roam-dailies-directory "logbook")
-;; (use-package org-roam
-;;   :custom
-;;   (org-roam-directory "~/cloud/mobile/org")
-;;   ;(org-roam-dailies-directory "journals/")
-;;   )
-;(setq org-roam-capture-templates
-;      '(("d" "default" plain
-;         "%?" :target
-;         (file+head "doc/${slug}.org" "#+title: ${title}\n")
-;         :unnarrowed t)))
+  :general
+  ;; Default key binding uses SPC.
+  (edebug-mode-map "s" 'edebug-step-mode))
+(custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(custom-safe-themes
+   '("7b8f5bbdc7c316ee62f271acf6bcd0e0b8a272fdffe908f8c920b0ba34871d98" default)))
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ )

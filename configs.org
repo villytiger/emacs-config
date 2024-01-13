@@ -60,3 +60,16 @@ https://www.reddit.com/r/emacs/comments/w4gxoa/what_are_some_musthave_packages_f
 - Using built-in system
 - More lightweight than undo-tree
 ** undo-tree
+** undo-fu
+- IIUC it can work simultaneously with vundo
+** undo-fu-session
+- To save undo-fu actions
+
+* Snippets
+** yasnippet
+** tempel
+** cape
+
+* Spell checking
+** jinx
+- From minad
