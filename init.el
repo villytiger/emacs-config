@@ -9,6 +9,17 @@
  column-number-mode t
  blink-cursor-mode nil)
 
+(setopt
+ ;; Explicitly define the minimal width to reduce the cost of on-the-fly computation.
+ display-line-numbers-width 3
+ ;; Show absolute line numbers for narrowed regions to make it easier to tell the
+ ;; buffer is narrowed, and where you are, exactly.
+ display-line-numbers-widen t)
+
+(add-hook 'text-mode-hook #'display-line-numbers-mode)
+(add-hook 'conf-mode-hook #'display-line-numbers-mode)
+(add-hook 'prog-mode-hook #'display-line-numbers-mode)
+
 (require 'elpaca-bootstrap)
 (elpaca elpaca-use-package (elpaca-use-package-mode))
 (elpaca-wait)
@@ -158,7 +169,41 @@
 (use-package gruvbox-theme
   :elpaca t
   :config
-  (load-theme 'gruvbox t))
+  (load-theme 'gruvbox t)
+  ;; autothemer-let-palette gets palette from the last loaded/evaled theme.
+  ;; So this block must be executed immediately after loading theme, but for
+  ;; some reason patching works only after enabling.
+  ;; TODO: Figure out why enabling is needed.
+  (autothemer-let-palette
+   (custom-theme-set-faces
+    'gruvbox
+    `(line-number
+      ((t :background ,gruvbox-dark0_hard
+	  :foreground ,gruvbox-dark3
+	  :weight light)))
+    `(line-number-current-line
+      ((t :background ,gruvbox-dark0_hard
+	  :foreground ,gruvbox-faded_yellow
+	  :weight light)))
+    `(solaire-default-face
+      ((t :background ,gruvbox-dark0_hard)))
+    `(solaire-minibuffer-face
+      ((t :background ,gruvbox-dark0_hard)))
+    `(solaire-hl-line-face
+      ((t :background ,gruvbox-dark0_hard)))
+    `(solaire-org-hide-face
+      ((t :background ,gruvbox-dark0_hard)))))
+  ;; Theme must be enabled again for modifications to work.
+  (enable-theme 'gruvbox))
+
+(use-package solaire-mode
+  :elpaca t
+  :custom
+  (solaire-global-mode t))
+
+(use-package rainbow-delimiters
+  :elpaca t
+  :hook (prog-mode . rainbow-delimiters-mode))
 
 (use-package dashboard
  :elpaca t
