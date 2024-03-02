@@ -7,6 +7,8 @@
 ;; Disable built-in package.el.
 (setq package-enable-at-startup nil)
 
+(setopt use-package-enable-imenu-support t)
+
 (setcar native-comp-eln-load-path
 (expand-file-name ".local/cache/eln" user-emacs-directory))
 

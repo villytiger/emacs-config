@@ -34,8 +34,26 @@
 
 (use-package emacs
   :general
+  (:prefix-command 'arete-buffer-menu-map
+		   "R" '("Rename buffer" . rename-buffer)
+		   "S" '("Save some buffers" . save-some-buffers)
+		   ;; "X" '("Scratch buffer" . )
+		   "[" '("Previous buffer" . previous-buffer)
+		   "]" '("Next buffer" . next-buffer)
+		   "b" '("Switch buffer" . switch-to-buffer)
+		   "d" '("Kill buffer" . kill-buffer)
+		   "l" '("Last buffer" . mode-line-other-buffer)
+		   ;; "n" '("New buffer" . )
+		   "r" '("Revert buffer" . revert-buffer)
+		   "s" '("Save buffer" . basic-save-buffer))
+  :config
+  (general-def arete-menu-map "b" '("Buffers" . arete-buffer-menu-map)))
+
+(use-package emacs
+  :general
   (:prefix-command 'arete-file-menu-map
 		   "f" '("Find file" . find-file)
+		   "r" '("Recent files" . recentf-open)
 		   "s" '("Save file" . save-buffer)
 		   "S" '("Save file as..." . write-file))
   :config
@@ -68,9 +86,9 @@
   :demand t
   :general
   (:keymaps '(meow-normal-state-keymap
-	      meow-motion-state-keymap)
-	    "<menu>" 'meow-keypad
-	    "SPC" 'arete-menu-map)
+            meow-motion-state-keymap)
+            "<menu>" 'meow-keypad
+            "SPC" 'arete-menu-map)
   (meow-motion-state-keymap
    "j" 'meow-next
    "k" 'meow-prev
@@ -166,35 +184,51 @@
   (meow--which-key-describe-keymap)
   (meow-global-mode t))
 
+;; (use-package gruvbox-theme
+;;   :elpaca t
+;;   :config
+;;   (load-theme 'gruvbox t)
+;;   ;; autothemer-let-palette gets palette from the last loaded/evaled theme.
+;;   ;; So this block must be executed immediately after loading theme, but for
+;;   ;; some reason patching works only after enabling.
+;;   ;; TODO: Figure out why enabling is needed.
+;;   (autothemer-let-palette
+;;    (custom-theme-set-faces
+;;     'gruvbox
+;;     `(line-number
+;;       ((t :background ,gruvbox-dark0_hard
+;; 	  :foreground ,gruvbox-dark3)))
+;;     `(line-number-current-line
+;;       ((t :background ,gruvbox-dark0_hard
+;; 	  :foreground ,gruvbox-faded_yellow)))
+;;     `(solaire-default-face
+;;       ((t :background ,gruvbox-dark0_hard)))
+;;     `(solaire-minibuffer-face
+;;       ((t :background ,gruvbox-dark0_hard)))
+;;     `(solaire-hl-line-face
+;;       ((t :background ,gruvbox-dark0_hard)))
+;;     `(solaire-org-hide-face
+;;       ((t :background ,gruvbox-dark0_hard)))))
+;;   ;; Theme must be enabled again for modifications to work.
+;;   (enable-theme 'gruvbox))
+
+(use-package autothemer
+  :elpaca t)
+
+(use-package fontify-face
+  :elpaca t)
+
 (use-package gruvbox-theme
-  :elpaca t
+  :after autothemer
+  :load-path "packages/emacs-theme-gruvbox"
   :config
-  (load-theme 'gruvbox t)
-  ;; autothemer-let-palette gets palette from the last loaded/evaled theme.
-  ;; So this block must be executed immediately after loading theme, but for
-  ;; some reason patching works only after enabling.
-  ;; TODO: Figure out why enabling is needed.
-  (autothemer-let-palette
-   (custom-theme-set-faces
-    'gruvbox
-    `(line-number
-      ((t :background ,gruvbox-dark0_hard
-	  :foreground ,gruvbox-dark3
-	  :weight light)))
-    `(line-number-current-line
-      ((t :background ,gruvbox-dark0_hard
-	  :foreground ,gruvbox-faded_yellow
-	  :weight light)))
-    `(solaire-default-face
-      ((t :background ,gruvbox-dark0_hard)))
-    `(solaire-minibuffer-face
-      ((t :background ,gruvbox-dark0_hard)))
-    `(solaire-hl-line-face
-      ((t :background ,gruvbox-dark0_hard)))
-    `(solaire-org-hide-face
-      ((t :background ,gruvbox-dark0_hard)))))
-  ;; Theme must be enabled again for modifications to work.
-  (enable-theme 'gruvbox))
+  (load-theme 'gruvbox t))
+
+(use-package emacs
+  :config
+  (custom-set-faces
+   '(line-number ((t :weight light)))
+   '(line-number-current-line ((t :weight light)))))
 
 (use-package solaire-mode
   :elpaca t
@@ -294,15 +328,40 @@ Similar to `marginalia-annotate-command`, but also includes mode state."
   :custom
   ;; Some functionality works only with basic completion.
   ;; Basic should go first, otherwise history doesn't work.
-  (completion-styles '(basic hotfuzz))
+  (completion-styles '(hotfuzz basic))
   (completion-category-defaults nil)
   (completion-category-overrides
-   '((file (styles basic partial-completion hotfuzz)))))
+   '((file (styles basic partial-completion hotfuzz))))
+  :config
+  (defvar +hotfuzz--is-empty)
+  (defun +hotfuzz-all-completions--enable-history-a (orig content &rest args)
+    "Set a variable needed for showing most recent entries."
+    (setq +hotfuzz--is-empty (string-empty-p content))
+    (apply orig content args))
+  (advice-add #'hotfuzz-all-completions
+	      :around #'+hotfuzz-all-completions--enable-history-a)
+  (defun +hotfuzz--adjust-metadata--enable-history-a (orig metadata)
+    "Enable showing most recent entries for empty input."
+    (if +hotfuzz--is-empty
+	metadata
+	(funcall orig metadata)))
+  (advice-add #'hotfuzz--adjust-metadata
+	      :around #'+hotfuzz--adjust-metadata--enable-history-a))
 
 (use-package vertico
   :elpaca t
   :custom
   (vertico-mode t))
+
+(use-package corfu
+  :elpaca t
+  :general
+  (corfu-map
+   "<escape>" 'corfu-reset
+   "M-<escape>" 'corfu-quit)
+  :custom
+  (global-corfu-mode t)
+  (tab-always-indent 'complete))
 
 ;; TODO: embark-consult.
 (use-package embark
@@ -325,6 +384,11 @@ Similar to `marginalia-annotate-command`, but also includes mode state."
 ;;   (setopt icomplete-vertical-mode t
 ;; 	  icomplete-show-matches-on-no-input t
 ;; 	  completion-auto-help nil))
+
+(use-package consult
+  :elpaca t
+  :general
+  ([remap recentf-open] #'consult-recent-file))
 
 (use-package org
   :no-require
@@ -387,16 +451,3 @@ the resulting string becomes wider than needed."
   :general
   ;; Default key binding uses SPC.
   (edebug-mode-map "s" 'edebug-step-mode))
-(custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(custom-safe-themes
-   '("7b8f5bbdc7c316ee62f271acf6bcd0e0b8a272fdffe908f8c920b0ba34871d98" default)))
-(custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- )
