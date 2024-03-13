@@ -1,3 +1,10 @@
+;; Init
+;; #+PROPERTY header-args :tangle "init.el"
+
+;; Most of the configuration goes into init.el.
+
+
+;; [[file:config.org::*Init][Init:1]]
 ;;; -*- lexical-binding: t; -*-
 
 ;; (setq display-line-numbers-type t)
@@ -7,7 +14,8 @@
  read-buffer-completion-ignore-case t
  read-file-name-completion-ignore-case t
  column-number-mode t
- blink-cursor-mode nil)
+ blink-cursor-mode nil
+ indent-tabs mod nil)
 
 (setopt
  ;; Explicitly define the minimal width to reduce the cost of on-the-fly computation.
@@ -35,27 +43,27 @@
 (use-package emacs
   :general
   (:prefix-command 'arete-buffer-menu-map
-		   "R" '("Rename buffer" . rename-buffer)
-		   "S" '("Save some buffers" . save-some-buffers)
-		   ;; "X" '("Scratch buffer" . )
-		   "[" '("Previous buffer" . previous-buffer)
-		   "]" '("Next buffer" . next-buffer)
-		   "b" '("Switch buffer" . switch-to-buffer)
-		   "d" '("Kill buffer" . kill-buffer)
-		   "l" '("Last buffer" . mode-line-other-buffer)
-		   ;; "n" '("New buffer" . )
-		   "r" '("Revert buffer" . revert-buffer)
-		   "s" '("Save buffer" . basic-save-buffer))
+                   "R" '("Rename buffer" . rename-buffer)
+                   "S" '("Save some buffers" . save-some-buffers)
+                   ;; "X" '("Scratch buffer" . )
+                   "[" '("Previous buffer" . previous-buffer)
+                   "]" '("Next buffer" . next-buffer)
+                   "b" '("Switch buffer" . switch-to-buffer)
+                   "d" '("Kill buffer" . kill-buffer)
+                   "l" '("Last buffer" . mode-line-other-buffer)
+                   ;; "n" '("New buffer" . )
+                   "r" '("Revert buffer" . revert-buffer)
+                   "s" '("Save buffer" . basic-save-buffer))
   :config
   (general-def arete-menu-map "b" '("Buffers" . arete-buffer-menu-map)))
 
 (use-package emacs
   :general
   (:prefix-command 'arete-file-menu-map
-		   "f" '("Find file" . find-file)
-		   "r" '("Recent files" . recentf-open)
-		   "s" '("Save file" . save-buffer)
-		   "S" '("Save file as..." . write-file))
+                   "f" '("Find file" . find-file)
+                   "r" '("Recent files" . recentf-open)
+                   "s" '("Save file" . save-buffer)
+                   "S" '("Save file as..." . write-file))
   :config
   ;; Bind prefixes after they are defined in :general section,
   ;; otherwise general creates a placeholder that hides a prefix command.
@@ -65,15 +73,15 @@
 (use-package emacs
   :general
   (:prefix-command 'arete-help-menu-map
-		   "B" '("Describe bindings" . describe-bindings)
-   ;; Note that the built-in `describe-function' includes both functions
-   ;; and macros. `helpful-function' is functions only, so we provide
-   ;; `helpful-callable' as a drop-in replacement.
-   "f" '("Describe callable" . describe-function)
-   "k" '("Describe key" . describe-key)
-   "o" '("Describe symbol" . describe-symbol)
-   "v" '("Describe variable" . describe-variable)
-   "x" '("Describe command" . describe-command))
+                   "B" '("Describe bindings" . describe-bindings)
+                   ;; Note that the built-in `describe-function' includes both functions
+                   ;; and macros. `helpful-function' is functions only, so we provide
+                   ;; `helpful-callable' as a drop-in replacement.
+                   "f" '("Describe callable" . describe-function)
+                   "k" '("Describe key" . describe-key)
+                   "o" '("Describe symbol" . describe-symbol)
+                   "v" '("Describe variable" . describe-variable)
+                   "x" '("Describe command" . describe-command))
   :config
   (general-def arete-menu-map "h" '("Help" . arete-help-menu-map)))
 
@@ -86,7 +94,7 @@
   :demand t
   :general
   (:keymaps '(meow-normal-state-keymap
-            meow-motion-state-keymap)
+              meow-motion-state-keymap)
             "<menu>" 'meow-keypad
             "SPC" 'arete-menu-map)
   (meow-motion-state-keymap
@@ -240,9 +248,9 @@
   :hook (prog-mode . rainbow-delimiters-mode))
 
 (use-package dashboard
- :elpaca t
- :config
- (dashboard-setup-startup-hook))
+  :elpaca t
+  :config
+  (dashboard-setup-startup-hook))
 
 (use-package doom-modeline
   :elpaca t
@@ -284,13 +292,13 @@
   :config
   ;; https://d12frosted.io/posts/2019-06-26-emacs-helpful.html
   (defun +helpful-switch-to-buffer (buffer-or-name)
-  "Switch to helpful BUFFER-OR-NAME.
+    "Switch to helpful BUFFER-OR-NAME.
 
 The logic is simple, if we are currently in the helpful buffer,
 reuse it's window, otherwise create new one."
-  (if (eq major-mode 'helpful-mode)
-      (switch-to-buffer buffer-or-name)
-    (pop-to-buffer buffer-or-name))))
+    (if (eq major-mode 'helpful-mode)
+        (switch-to-buffer buffer-or-name)
+      (pop-to-buffer buffer-or-name))))
 
 (use-package savehist
   :no-require
@@ -314,11 +322,11 @@ reuse it's window, otherwise create new one."
 Similar to `marginalia-annotate-command`, but also includes mode state."
     (concat
      (when-let ((mode (string-suffix-p "-mode" cand))
-		(sym (intern-soft cand)))
+                (sym (intern-soft cand)))
        (+marginalia--mode-state sym))
      (funcall orig cand)))
   (advice-add #'marginalia-annotate-command
-	      :around #'+marginalia-annotate-command-with-mode))
+              :around #'+marginalia-annotate-command-with-mode))
 
 (use-package hotfuzz
   :elpaca t
@@ -339,14 +347,14 @@ Similar to `marginalia-annotate-command`, but also includes mode state."
     (setq +hotfuzz--is-empty (string-empty-p content))
     (apply orig content args))
   (advice-add #'hotfuzz-all-completions
-	      :around #'+hotfuzz-all-completions--enable-history-a)
+              :around #'+hotfuzz-all-completions--enable-history-a)
   (defun +hotfuzz--adjust-metadata--enable-history-a (orig metadata)
     "Enable showing most recent entries for empty input."
     (if +hotfuzz--is-empty
-	metadata
-	(funcall orig metadata)))
+        metadata
+      (funcall orig metadata)))
   (advice-add #'hotfuzz--adjust-metadata
-	      :around #'+hotfuzz--adjust-metadata--enable-history-a))
+              :around #'+hotfuzz--adjust-metadata--enable-history-a))
 
 (use-package vertico
   :elpaca t
@@ -394,9 +402,10 @@ Similar to `marginalia-annotate-command`, but also includes mode state."
   :no-require
   :general
   (:prefix-command 'arete-notes-menu-map
-		   "a" '("Agenda" . org-agenda))
+                   "a" '("Agenda" . org-agenda))
   :custom
   (org-directory "~/cloud/mobile/org")
+  (org-support-shift-select t)
   :config
   (general-def arete-menu-map "n" '("Notes" . arete-notes-menu-map)))
 
@@ -407,10 +416,10 @@ See https://github.com/org-roam/org-roam/issues/2066.
 2. When one field has '*' width and another doesn't have specified width,
 the resulting string becomes wider than needed."
   (let* ((width (if (minibufferp) (window-width) (frame-width)))
-	 (candidate (org-roam-node--format-entry template node width))
-	 (adjustment (- width (string-width candidate)))
-	 (candidate-main
-	  (org-roam-node--format-entry template node (+ width adjustment))))
+         (candidate (org-roam-node--format-entry template node width))
+         (adjustment (- width (string-width candidate)))
+         (candidate-main
+          (org-roam-node--format-entry template node (+ width adjustment))))
     (cons (propertize candidate-main 'node node) node)))
 
 (use-package org-roam
@@ -418,13 +427,13 @@ the resulting string becomes wider than needed."
   :after org
   :general
   (:prefix-command 'arete-roam-menu-map
-   "f" '("Find node" . org-roam-node-find)
-   "i" '("Insert node" . org-roam-insert)
-   "r" '("Toggle roam buffer" . org-roam-buffer-toggle))
+                   "f" '("Find node" . org-roam-node-find)
+                   "i" '("Insert node" . org-roam-insert)
+                   "r" '("Toggle roam buffer" . org-roam-buffer-toggle))
   (:prefix-command 'arete-dailies-menu-map
-		   "t" '("Goto today" . org-roam-dailies-goto-today)
-		   "m" '("Goto tomorrow" . org-roam-dailies-goto-tomorrow)
-		   "y" '("Goto yesterday" . org-roam-dailies-goto-yesterday))
+                   "t" '("Goto today" . org-roam-dailies-goto-today)
+                   "m" '("Goto tomorrow" . org-roam-dailies-goto-tomorrow)
+                   "y" '("Goto yesterday" . org-roam-dailies-goto-yesterday))
   :custom
   (org-roam-directory "~/cloud/mobile/org")
   (org-roam-dailies-directory "logbook")
@@ -436,7 +445,7 @@ the resulting string becomes wider than needed."
   (general-def arete-notes-menu-map "d" '("Dailies" . arete-dailies-menu-map))
   :config
   (advice-add 'org-roam-node-read--to-candidate
-	      :override '+org-roam/format-width-a)
+              :override '+org-roam/format-width-a)
   (org-roam-db-autosync-mode t))
 
 (use-package consult-org-roam
@@ -451,3 +460,18 @@ the resulting string becomes wider than needed."
   :general
   ;; Default key binding uses SPC.
   (edebug-mode-map "s" 'edebug-step-mode))
+
+;;(custom-set-variables
+;; custom-set-variables was added by Custom.
+;; If you edit it by hand, you could mess it up, so be careful.
+;; Your init file should contain only one such instance.
+;; If there is more than one, they won't work right.
+;; '(safe-local-variable-values '((eval message "test"))))
+;;(custom-set-faces
+;; custom-set-faces was added by Custom.
+;; If you edit it by hand, you could mess it up, so be careful.
+;; Your init file should contain only one such instance.
+;; If there is more than one, they won't work right.
+;; '(line-number ((t :weight light)))
+;; '(line-number-current-line ((t :weight light))))
+;; Init:1 ends here

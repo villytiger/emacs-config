@@ -1,3 +1,10 @@
+;; Early Init
+;; #+PROPERTY: header-args:emacs-lisp+ :tangle "early-init.el"
+
+;; We put some configuration options into early-init.el.
+
+
+;; [[file:config.org::*Early Init][Early Init:1]]
 ;;; early-init.el -*- lexical-binding: t; -*-
 
 ;; Disable GC while starting up.
@@ -10,7 +17,7 @@
 (setopt use-package-enable-imenu-support t)
 
 (setcar native-comp-eln-load-path
-(expand-file-name ".local/cache/eln" user-emacs-directory))
+        (expand-file-name ".local/cache/eln" user-emacs-directory))
 
 (setq inhibit-startup-screen t)
 
@@ -29,3 +36,4 @@
 (add-to-list 'load-path (expand-file-name "lisp" user-emacs-directory))
 ;; (require 'elpaca-bootstrap)
 ;; (require 'tig-lib)
+;; Early Init:1 ends here
