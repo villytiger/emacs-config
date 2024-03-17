@@ -415,8 +415,10 @@ Similar to `marginalia-annotate-command`, but also includes mode state."
   :custom
   (org-directory "~/cloud/mobile/org")
   (org-support-shift-select t)
+  (org-startup-indented t)
   :config
-  (general-def arete-menu-map "n" '("Notes" . arete-notes-menu-map)))
+  (general-def arete-menu-map "n" '("Notes" . arete-notes-menu-map))
+  (face-spec-set 'org-modern-block-name nil 'face-defface-spec))
 
 (defun +org-roam/format-width-a (node template)
   "Advice that fixes two issues with format functions:
@@ -477,15 +479,14 @@ the resulting string becomes wider than needed."
 ;; [[file:config.org::*Org Look And Feel][Org Look And Feel:1]]
 (use-package org-modern
   :elpaca t
-  :hook
-  ((org-mode-hook . org-modern-mode)
-   (org-agenda-finalize-hook . org-modern-agenda)))
+  :after org
+  :hook ((org-mode . org-modern-mode)
+         (org-agenda-finalize . org-modern-agenda)))
 ;; Org Look And Feel:1 ends here
 
 ;; [[file:config.org::*Org Look And Feel][Org Look And Feel:2]]
 (use-package org-modern-indent
-  :elpaca
-  (:host github :repo "jdtsmith/org-modern-indent")
-  :hook
-  ('org-mode-hook . org-modern-indent-mode))
+  :elpaca (:host github :repo "jdtsmith/org-modern-indent")
+  :after org
+  :hook ('org-mode . org-modern-indent-mode))
 ;; Org Look And Feel:2 ends here

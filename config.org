@@ -462,8 +462,10 @@ TODO move to use-package for org-mode or org-babel
     :custom
     (org-directory "~/cloud/mobile/org")
     (org-support-shift-select t)
+    (org-startup-indented t)
     :config
-    (general-def arete-menu-map "n" '("Notes" . arete-notes-menu-map)))
+    (general-def arete-menu-map "n" '("Notes" . arete-notes-menu-map))
+    (face-spec-set 'org-modern-block-name nil 'face-defface-spec))
 
   (defun +org-roam/format-width-a (node template)
     "Advice that fixes two issues with format functions:
@@ -525,14 +527,14 @@ TODO move to use-package for org-mode or org-babel
 #+begin_src emacs-lisp
   (use-package org-modern
     :elpaca t
-    :hook
-    ((org-mode-hook . org-modern-mode)
-     (org-agenda-finalize-hook . org-modern-agenda)))
+    :after org
+    :hook ((org-mode . org-modern-mode)
+           (org-agenda-finalize . org-modern-agenda)))
 #+end_src
 
 #+begin_src emacs-lisp
   (use-package org-modern-indent
-    :elpaca t
-    :hook
-    ('org-mode-hook . org-modern-indent-mode))
+    :elpaca (:host github :repo "jdtsmith/org-modern-indent")
+    :after org
+    :hook ('org-mode . org-modern-indent-mode))
 #+end_src
