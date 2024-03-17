@@ -1,14 +1,13 @@
-# -*- eval: (arete--literate-init); -*-
-#+PROPERTY: header-args:emacs-lisp+ :comments both
+#+PROPERTY: header-args:emacs-lisp :comments both :results discard silent
 
 * Early Configuration
-#+PROPERTY: header-args:emacs-lisp+ :tangle "early-init.el"
+:PROPERTIES:
+:header-args:emacs-lisp+: :tangle "early-init.el"
+:END:
 
 We put some configuration options into early-init.el.
 
 #+BEGIN_SRC emacs-lisp
-  ;;; early-init.el -*- lexical-binding: t; -*-
-
   ;; Disable GC while starting up.
   (setq gc-cons-threshold most-positive-fixnum)
   (setq gc-cons-percentage 0.6)
@@ -41,22 +40,38 @@ We put some configuration options into early-init.el.
 #+END_SRC
 
 * General Configuration
-#+PROPERTY header-args :tangle "init.el"
+:PROPERTIES:
+:header-args:emacs-lisp+: :tangle "init.el"
+:END:
 
 Most of the configuration goes into init.el.
 
+** Literate Config Goodies
+
+TODO move to use-package for org-mode or org-babel
+
+#+begin_src emacs-lisp
+  (defun arete--post-tangle ()
+    (message "adjusting tangled file")
+    (cond
+     ((f-ext? (buffer-file-name) "el")
+      (add-file-local-variable-prop-line "lexical-binding" t)))
+    (save-buffer))
+  ;; (defun arete--literate-init ()
+    ;; (make-local-variable 'org-babel-post-tangle-hook)
+    ;; (add-hook 'org-babel-post-tangle-hook 'arete--literate-post-tangle nil t)
+    (add-hook 'org-babel-post-tangle-hook 'arete--post-tangle)
+    ;; )
+  ;; (put 'arete--literate-init 'safe-local-eval-function t)
+#+end_src
+
 #+BEGIN_SRC emacs-lisp
-  ;;; -*- lexical-binding: t; -*-
-
-  ;; (setq display-line-numbers-type t)
-
   (setopt
-   completion-ignore-case t
    read-buffer-completion-ignore-case t
    read-file-name-completion-ignore-case t
    column-number-mode t
    blink-cursor-mode nil
-   indent-tabs mod nil)
+   indent-tabs-mode nil)
 
   (setopt
    ;; Explicitly define the minimal width to reduce the cost of on-the-fly computation.
@@ -501,22 +516,23 @@ Most of the configuration goes into init.el.
     :general
     ;; Default key binding uses SPC.
     (edebug-mode-map "s" 'edebug-step-mode))
-
-  ;;(custom-set-variables
-  ;; custom-set-variables was added by Custom.
-  ;; If you edit it by hand, you could mess it up, so be careful.
-  ;; Your init file should contain only one such instance.
-  ;; If there is more than one, they won't work right.
-  ;; '(safe-local-variable-values '((eval message "test"))))
-  ;;(custom-set-faces
-  ;; custom-set-faces was added by Custom.
-  ;; If you edit it by hand, you could mess it up, so be careful.
-  ;; Your init file should contain only one such instance.
-  ;; If there is more than one, they won't work right.
-  ;; '(line-number ((t :weight light)))
-  ;; '(line-number-current-line ((t :weight light))))
 #+END_SRC
 
-# Local Variables:
-# eval: (message "test")
-# End:
+** Org Mode
+
+*** Org Look And Feel
+
+#+begin_src emacs-lisp
+  (use-package org-modern
+    :elpaca t
+    :hook
+    ((org-mode-hook . org-modern-mode)
+     (org-agenda-finalize-hook . org-modern-agenda)))
+#+end_src
+
+#+begin_src emacs-lisp
+  (use-package org-modern-indent
+    :elpaca t
+    :hook
+    ('org-mode-hook . org-modern-indent-mode))
+#+end_src

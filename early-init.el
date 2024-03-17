@@ -1,12 +1,12 @@
-;; Early Init
-;; #+PROPERTY: header-args:emacs-lisp+ :tangle "early-init.el"
+;; Early Configuration  -*- "lexical-binding": t; -*-
+;; :PROPERTIES:
+;; :header-args:emacs-lisp+: :tangle "early-init.el"
+;; :END:
 
 ;; We put some configuration options into early-init.el.
 
 
-;; [[file:config.org::*Early Init][Early Init:1]]
-;;; early-init.el -*- lexical-binding: t; -*-
-
+;; [[file:config.org::*Early Configuration][Early Configuration:1]]
 ;; Disable GC while starting up.
 (setq gc-cons-threshold most-positive-fixnum)
 (setq gc-cons-percentage 0.6)
@@ -36,4 +36,4 @@
 (add-to-list 'load-path (expand-file-name "lisp" user-emacs-directory))
 ;; (require 'elpaca-bootstrap)
 ;; (require 'tig-lib)
-;; Early Init:1 ends here
+;; Early Configuration:1 ends here

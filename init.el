@@ -1,21 +1,30 @@
-;; Init
-;; #+PROPERTY header-args :tangle "init.el"
+;; Literate Config Goodies  -*- "lexical-binding": t; -*-
 
-;; Most of the configuration goes into init.el.
+;; TODO move to use-package for org-mode or org-babel
 
 
-;; [[file:config.org::*Init][Init:1]]
-;;; -*- lexical-binding: t; -*-
+;; [[file:config.org::*Literate Config Goodies][Literate Config Goodies:1]]
+(defun arete--post-tangle ()
+  (message "adjusting tangled file")
+  (cond
+   ((f-ext? (buffer-file-name) "el")
+    (add-file-local-variable-prop-line "lexical-binding" t)))
+  (save-buffer))
+;; (defun arete--literate-init ()
+  ;; (make-local-variable 'org-babel-post-tangle-hook)
+  ;; (add-hook 'org-babel-post-tangle-hook 'arete--literate-post-tangle nil t)
+  (add-hook 'org-babel-post-tangle-hook 'arete--post-tangle)
+  ;; )
+;; (put 'arete--literate-init 'safe-local-eval-function t)
+;; Literate Config Goodies:1 ends here
 
-;; (setq display-line-numbers-type t)
-
+;; [[file:config.org::*Literate Config Goodies][Literate Config Goodies:2]]
 (setopt
- completion-ignore-case t
  read-buffer-completion-ignore-case t
  read-file-name-completion-ignore-case t
  column-number-mode t
  blink-cursor-mode nil
- indent-tabs mod nil)
+ indent-tabs-mode nil)
 
 (setopt
  ;; Explicitly define the minimal width to reduce the cost of on-the-fly computation.
@@ -460,18 +469,23 @@ the resulting string becomes wider than needed."
   :general
   ;; Default key binding uses SPC.
   (edebug-mode-map "s" 'edebug-step-mode))
+;; Literate Config Goodies:2 ends here
 
-;;(custom-set-variables
-;; custom-set-variables was added by Custom.
-;; If you edit it by hand, you could mess it up, so be careful.
-;; Your init file should contain only one such instance.
-;; If there is more than one, they won't work right.
-;; '(safe-local-variable-values '((eval message "test"))))
-;;(custom-set-faces
-;; custom-set-faces was added by Custom.
-;; If you edit it by hand, you could mess it up, so be careful.
-;; Your init file should contain only one such instance.
-;; If there is more than one, they won't work right.
-;; '(line-number ((t :weight light)))
-;; '(line-number-current-line ((t :weight light))))
-;; Init:1 ends here
+;; Org Look And Feel
+
+
+;; [[file:config.org::*Org Look And Feel][Org Look And Feel:1]]
+(use-package org-modern
+  :elpaca t
+  :hook
+  ((org-mode-hook . org-modern-mode)
+   (org-agenda-finalize-hook . org-modern-agenda)))
+;; Org Look And Feel:1 ends here
+
+;; [[file:config.org::*Org Look And Feel][Org Look And Feel:2]]
+(use-package org-modern-indent
+  :elpaca
+  (:host github :repo "jdtsmith/org-modern-indent")
+  :hook
+  ('org-mode-hook . org-modern-indent-mode))
+;; Org Look And Feel:2 ends here
