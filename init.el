@@ -12,31 +12,45 @@
   (save-buffer))
 ;; (defun arete--literate-init ()
   ;; (make-local-variable 'org-babel-post-tangle-hook)
-  ;; (add-hook 'org-babel-post-tangle-hook 'arete--literate-post-tangle nil t)
-  (add-hook 'org-babel-post-tangle-hook 'arete--post-tangle)
+;; (add-hook 'org-babel-post-tangle-hook 'arete--literate-post-tangle nil t)
+(add-hook 'org-babel-post-tangle-hook 'arete--post-tangle)
   ;; )
 ;; (put 'arete--literate-init 'safe-local-eval-function t)
 ;; Literate Config Goodies:1 ends here
 
-;; [[file:config.org::*Literate Config Goodies][Literate Config Goodies:2]]
-(setopt
- read-buffer-completion-ignore-case t
- read-file-name-completion-ignore-case t
- column-number-mode t
- blink-cursor-mode nil
- indent-tabs-mode nil)
+;; Use-Package
 
-(setopt
- ;; Explicitly define the minimal width to reduce the cost of on-the-fly computation.
- display-line-numbers-width 3
- ;; Show absolute line numbers for narrowed regions to make it easier to tell the
- ;; buffer is narrowed, and where you are, exactly.
- display-line-numbers-widen t)
 
-(add-hook 'text-mode-hook #'display-line-numbers-mode)
-(add-hook 'conf-mode-hook #'display-line-numbers-mode)
-(add-hook 'prog-mode-hook #'display-line-numbers-mode)
-;; Literate Config Goodies:2 ends here
+;; [[file:config.org::*Use-Package][Use-Package:1]]
+(setopt use-package-enable-imenu-support t)
+;; Use-Package:1 ends here
+
+
+
+;; Tell ~use-package~ to always load features lazily unless told otherwise. It's nicer to have this kind of thing be deterministic: if ~:demand~ is present, the loading is eager; otherwise, the loading is lazy. See https://github.com/jwiegley/use-package#notes-about-lazy-loading.
+
+
+;; [[file:config.org::*Use-Package][Use-Package:2]]
+(setopt use-package-always-defer t)
+;; Use-Package:2 ends here
+
+;; [[file:config.org::*Use-Package][Use-Package:3]]
+(setopt use-package-always-ensure t)
+;; Use-Package:3 ends here
+
+
+
+;; Built-in features should be configured with ~use-feature~, so that ~Elpaca~ wouldn't bother to install them.
+
+
+;; [[file:config.org::*Use-Package][Use-Package:4]]
+(defmacro use-feature (name &rest args)
+  "`use-package' that makes sure `ensure' is disabled."
+  (declare (indent defun))
+  `(use-package ,name
+     :ensure nil
+     ,@args))
+;; Use-Package:4 ends here
 
 ;; Bootstrap
 
@@ -82,23 +96,55 @@
 (elpaca `(,@elpaca-order))
 ;; Bootstrap:1 ends here
 
-;; [[file:config.org::*Bootstrap][Bootstrap:2]]
+;; Elpaca Configuration
+
+
+;; [[file:config.org::*Elpaca Configuration][Elpaca Configuration:1]]
 (elpaca elpaca-use-package (elpaca-use-package-mode))
 (elpaca-wait)
-;; Bootstrap:2 ends here
+;; Elpaca Configuration:1 ends here
+
+;; Garbage Collection Magic Hack
+
+
+;; [[file:config.org::*Garbage Collection Magic Hack][Garbage Collection Magic Hack:1]]
+(use-package gcmh
+  :custom
+  (gcmh-mode t))
+;; Garbage Collection Magic Hack:1 ends here
 
 ;; All the rest
 
 
 ;; [[file:config.org::*All the rest][All the rest:1]]
-(use-package general :ensure t)
+(setopt
+ read-buffer-completion-ignore-case t
+ read-file-name-completion-ignore-case t
+ column-number-mode t
+ blink-cursor-mode nil
+ indent-tabs-mode nil)
+
+(setopt
+ ;; Explicitly define the minimal width to reduce the cost of on-the-fly computation.
+ display-line-numbers-width 3
+ ;; Show absolute line numbers for narrowed regions to make it easier to tell the
+ ;; buffer is narrowed, and where you are, exactly.
+ display-line-numbers-widen t)
+
+(add-hook 'text-mode-hook #'display-line-numbers-mode)
+(add-hook 'conf-mode-hook #'display-line-numbers-mode)
+(add-hook 'prog-mode-hook #'display-line-numbers-mode)
+;; All the rest:1 ends here
+
+;; [[file:config.org::*All the rest][All the rest:2]]
+(use-package general :demand t)
 (elpaca-wait)
 
-(use-package emacs
+(use-feature emacs
   :general
   (:prefix-command 'arete-menu-map))
 
-(use-package emacs
+(use-feature emacs
   :general
   (:prefix-command 'arete-buffer-menu-map
                    "R" '("Rename buffer" . rename-buffer)
@@ -115,7 +161,7 @@
   :config
   (general-def arete-menu-map "b" '("Buffers" . arete-buffer-menu-map)))
 
-(use-package emacs
+(use-feature emacs
   :general
   (:prefix-command 'arete-file-menu-map
                    "f" '("Find file" . find-file)
@@ -128,7 +174,7 @@
   ;; Here, we define a custom string replacement as it is recommended by which-key.
   (general-def arete-menu-map "f" '("Files" . arete-file-menu-map)))
 
-(use-package emacs
+(use-feature emacs
   :general
   (:prefix-command 'arete-help-menu-map
                    "B" '("Describe bindings" . describe-bindings)
@@ -144,11 +190,9 @@
   (general-def arete-menu-map "h" '("Help" . arete-help-menu-map)))
 
 (use-package which-key
-  :ensure t
   :custom (which-key-mode t))
 
 (use-package meow
-  :ensure t
   :demand t
   :general
   (:keymaps '(meow-normal-state-keymap
@@ -251,7 +295,6 @@
   (meow-global-mode t))
 
 ;; (use-package gruvbox-theme
-;;   :ensure t
 ;;   :config
 ;;   (load-theme 'gruvbox t)
 ;;   ;; autothemer-let-palette gets palette from the last loaded/evaled theme.
@@ -278,47 +321,42 @@
 ;;   ;; Theme must be enabled again for modifications to work.
 ;;   (enable-theme 'gruvbox))
 
-(use-package autothemer
-  :ensure t)
-
-(use-package fontify-face
-  :ensure t)
+;; Remove when gruvbox is installed via Elpaca.
+(use-package autothemer :demand t)
+(use-package fontify-face)
+(use-package rainbow-mode)
 
 (use-package gruvbox-theme
   :after autothemer
+  :demand t
   :load-path "packages/emacs-theme-gruvbox"
   :config
   (load-theme 'gruvbox t))
 
-(use-package emacs
+(use-feature emacs
   :config
   (custom-set-faces
    '(line-number ((t :weight light)))
    '(line-number-current-line ((t :weight light)))))
 
 (use-package solaire-mode
-  :ensure t
   :custom
   (solaire-global-mode t))
 
 (use-package rainbow-delimiters
-  :ensure t
   :hook (prog-mode . rainbow-delimiters-mode))
 
 (use-package dashboard
-  :ensure t
-  :config
+  :init
   (dashboard-setup-startup-hook))
 
 (use-package doom-modeline
-  :ensure t
-  :init
-  (setopt doom-modeline-mode t))
+  :custom
+  (doom-modeline-mode t))
 
 (use-package nyan-mode
-  :ensure t
-  :init
-  (setopt nyan-mode t))
+  :custom
+  (nyan-mode t))
 
 ;; (use-package shackle
 ;;   :config
@@ -332,7 +370,6 @@
 ;; TODO: add go-back and go-forward.
 ;; See https://github.com/Wilfred/helpful/issues/250.
 (use-package helpful
-  :ensure t
   :general
   (arete-help-menu-map
    "F" '("Describe function" . helpful-function)
@@ -358,13 +395,12 @@ reuse it's window, otherwise create new one."
         (switch-to-buffer buffer-or-name)
       (pop-to-buffer buffer-or-name))))
 
-(use-package savehist
+(use-feature savehist
   :no-require
   :custom
   (savehist-mode t))
 
 (use-package marginalia
-  :ensure t
   :custom
   (marginalia-mode t)
   :config
@@ -387,7 +423,6 @@ Similar to `marginalia-annotate-command`, but also includes mode state."
               :around #'+marginalia-annotate-command-with-mode))
 
 (use-package hotfuzz
-  :ensure t
   :general
   (vertico-map
    "SPC" 'minibuffer-complete-word)
@@ -415,12 +450,10 @@ Similar to `marginalia-annotate-command`, but also includes mode state."
               :around #'+hotfuzz--adjust-metadata--enable-history-a))
 
 (use-package vertico
-  :ensure t
   :custom
   (vertico-mode t))
 
 (use-package corfu
-  :ensure t
   :general
   (corfu-map
    "<escape>" 'corfu-reset
@@ -431,7 +464,6 @@ Similar to `marginalia-annotate-command`, but also includes mode state."
 
 ;; TODO: embark-consult.
 (use-package embark
-  :ensure t
   :general
   ("M-SPC" 'embark-act)
   (arete-help-menu-map
@@ -452,22 +484,21 @@ Similar to `marginalia-annotate-command`, but also includes mode state."
 ;; 	  completion-auto-help nil))
 
 (use-package consult
-  :ensure t
   :general
   ([remap recentf-open] #'consult-recent-file))
 
-(use-package edebug
+(use-feature edebug
   :no-require
   :general
   ;; Default key binding uses SPC.
   (edebug-mode-map "s" 'edebug-step-mode))
-;; All the rest:1 ends here
+;; All the rest:2 ends here
 
 ;; Org Mode
 
 
 ;; [[file:config.org::*Org Mode][Org Mode:1]]
-(use-package org
+(use-feature org
   :hook (org-mode . visual-line-mode)
   :general
   (:prefix-command 'arete-notes-menu-map
@@ -489,11 +520,11 @@ Similar to `marginalia-annotate-command`, but also includes mode state."
 
 
 
-;; Inline tasks are disabled by default, although they seem very useful for quickly defining some small tasks without introducing a first-class header. Technically, they are defined as headers, but deeply nested. Try out by running ~org-inlinetask-insert-task~ on an empty line.
+;; Inline tasks are disabled by default, although they seem very useful for quickly defining small tasks without introducing a first-class header. Technically, they are defined as headers, but deeply nested. Try out by running ~org-inlinetask-insert-task~ on an empty line.
 
 
 ;; [[file:config.org::*Org Mode][Org Mode:2]]
-(use-package org-inlinetask)
+(use-feature org-inlinetask :demand t)
 ;; Org Mode:2 ends here
 
 ;; Org Modern
@@ -501,7 +532,6 @@ Similar to `marginalia-annotate-command`, but also includes mode state."
 
 ;; [[file:config.org::*Org Modern][Org Modern:1]]
 (use-package org-modern
-  :ensure t
   :after org
   :custom
   (org-modern-block-name '(("src" "λ" "λ")))
@@ -553,7 +583,6 @@ the resulting string becomes wider than needed."
     (cons (propertize candidate-main 'node node) node)))
 
 (use-package org-roam
-  :ensure t
   :after org
   :general
   (:prefix-command 'arete-roam-menu-map
@@ -588,8 +617,7 @@ the resulting string becomes wider than needed."
 
 ;; [[file:config.org::*Consult Org Roam][Consult Org Roam:1]]
 (use-package consult-org-roam
-  :ensure t
   :after org-roam
-  :init
+  :custom
   (consult-org-roam-mode t))
 ;; Consult Org Roam:1 ends here

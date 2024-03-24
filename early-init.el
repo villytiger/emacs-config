@@ -1,20 +1,19 @@
-;; Early Configuration  -*- "lexical-binding": t; -*-
-;; :PROPERTIES:
-;; :header-args:emacs-lisp+: :tangle "early-init.el"
-;; :END:
+;; Garbage Collection  -*- "lexical-binding": t; -*-
 
-;; We put some configuration options into early-init.el.
+;; We effectively disable garbage collection while Emacs is starting up by setting the threshold to 1 GiB. This famous hack cuts startup time in half. This section should be located as high as possible in the file so that other commands do not trigger garbage collection. Later on, ~gcmh~ will re-enable garbage collection in idle periods.
 
 
-;; [[file:config.org::*Early Configuration][Early Configuration:1]]
-;; Disable GC while starting up.
-(setq gc-cons-threshold most-positive-fixnum)
-(setq gc-cons-percentage 0.6)
+;; [[file:config.org::*Garbage Collection][Garbage Collection:1]]
+(setq gc-cons-threshold #x40000000)
+;; Garbage Collection:1 ends here
 
+;; The rest
+
+
+;; [[file:config.org::*The rest][The rest:1]]
 ;; Disable built-in package.el.
 (setq package-enable-at-startup nil)
 
-(setopt use-package-enable-imenu-support t)
 
 (setcar native-comp-eln-load-path
         (expand-file-name ".local/cache/eln" user-emacs-directory))
@@ -40,4 +39,4 @@
 (add-to-list 'load-path (expand-file-name "lisp" user-emacs-directory))
 ;; (require 'elpaca-bootstrap)
 ;; (require 'tig-lib)
-;; Early Configuration:1 ends here
+;; The rest:1 ends here

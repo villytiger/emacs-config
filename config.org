@@ -7,15 +7,20 @@
 
 We put some configuration options into early-init.el.
 
-#+BEGIN_src emacs-lisp
-  ;; Disable GC while starting up.
-  (setq gc-cons-threshold most-positive-fixnum)
-  (setq gc-cons-percentage 0.6)
+** Garbage Collection
 
+We effectively disable garbage collection while Emacs is starting up by setting the threshold to 1 GiB. This famous hack cuts startup time in half. This section should be located as high as possible in the file so that other commands do not trigger garbage collection. Later on, ~gcmh~ will re-enable garbage collection in idle periods.
+
+#+BEGIN_src emacs-lisp
+  (setq gc-cons-threshold #x40000000)
+#+end_src
+
+** The rest
+
+#+begin_src emacs-lisp
   ;; Disable built-in package.el.
   (setq package-enable-at-startup nil)
 
-  (setopt use-package-enable-imenu-support t)
 
   (setcar native-comp-eln-load-path
           (expand-file-name ".local/cache/eln" user-emacs-directory))
@@ -63,30 +68,37 @@ TODO move to use-package for org-mode or org-babel
     (save-buffer))
   ;; (defun arete--literate-init ()
     ;; (make-local-variable 'org-babel-post-tangle-hook)
-    ;; (add-hook 'org-babel-post-tangle-hook 'arete--literate-post-tangle nil t)
-    (add-hook 'org-babel-post-tangle-hook 'arete--post-tangle)
+  ;; (add-hook 'org-babel-post-tangle-hook 'arete--literate-post-tangle nil t)
+  (add-hook 'org-babel-post-tangle-hook 'arete--post-tangle)
     ;; )
   ;; (put 'arete--literate-init 'safe-local-eval-function t)
 #+end_src
 
-#+BEGIN_src emacs-lisp
-  (setopt
-   read-buffer-completion-ignore-case t
-   read-file-name-completion-ignore-case t
-   column-number-mode t
-   blink-cursor-mode nil
-   indent-tabs-mode nil)
+** Use-Package
 
-  (setopt
-   ;; Explicitly define the minimal width to reduce the cost of on-the-fly computation.
-   display-line-numbers-width 3
-   ;; Show absolute line numbers for narrowed regions to make it easier to tell the
-   ;; buffer is narrowed, and where you are, exactly.
-   display-line-numbers-widen t)
+#+begin_src emacs-lisp
+  (setopt use-package-enable-imenu-support t)
+#+end_src
 
-  (add-hook 'text-mode-hook #'display-line-numbers-mode)
-  (add-hook 'conf-mode-hook #'display-line-numbers-mode)
-  (add-hook 'prog-mode-hook #'display-line-numbers-mode)
+Tell ~use-package~ to always load features lazily unless told otherwise. It's nicer to have this kind of thing be deterministic: if ~:demand~ is present, the loading is eager; otherwise, the loading is lazy. See https://github.com/jwiegley/use-package#notes-about-lazy-loading.
+
+#+begin_src emacs-lisp
+  (setopt use-package-always-defer t)
+#+end_src
+
+#+begin_src emacs-lisp
+  (setopt use-package-always-ensure t)
+#+end_src
+
+Built-in features should be configured with ~use-feature~, so that ~Elpaca~ wouldn't bother to install them.
+
+#+begin_src emacs-lisp
+  (defmacro use-feature (name &rest args)
+    "`use-package' that makes sure `ensure' is disabled."
+    (declare (indent defun))
+    `(use-package ,name
+       :ensure nil
+       ,@args))
 #+end_src
 
 ** Elpaca
@@ -134,22 +146,52 @@ TODO move to use-package for org-mode or org-babel
   (elpaca `(,@elpaca-order))
 #+end_src
 
+*** Elpaca Configuration
+
 #+begin_src emacs-lisp
   (elpaca elpaca-use-package (elpaca-use-package-mode))
   (elpaca-wait)
 #+end_src
 
-*** All the rest
+** Garbage Collection Magic Hack
 
 #+begin_src emacs-lisp
-  (use-package general :ensure t)
+  (use-package gcmh
+    :custom
+    (gcmh-mode t))
+#+end_src
+
+** All the rest
+
+#+BEGIN_src emacs-lisp
+  (setopt
+   read-buffer-completion-ignore-case t
+   read-file-name-completion-ignore-case t
+   column-number-mode t
+   blink-cursor-mode nil
+   indent-tabs-mode nil)
+
+  (setopt
+   ;; Explicitly define the minimal width to reduce the cost of on-the-fly computation.
+   display-line-numbers-width 3
+   ;; Show absolute line numbers for narrowed regions to make it easier to tell the
+   ;; buffer is narrowed, and where you are, exactly.
+   display-line-numbers-widen t)
+
+  (add-hook 'text-mode-hook #'display-line-numbers-mode)
+  (add-hook 'conf-mode-hook #'display-line-numbers-mode)
+  (add-hook 'prog-mode-hook #'display-line-numbers-mode)
+#+end_src
+
+#+begin_src emacs-lisp
+  (use-package general :demand t)
   (elpaca-wait)
 
-  (use-package emacs
+  (use-feature emacs
     :general
     (:prefix-command 'arete-menu-map))
 
-  (use-package emacs
+  (use-feature emacs
     :general
     (:prefix-command 'arete-buffer-menu-map
                      "R" '("Rename buffer" . rename-buffer)
@@ -166,7 +208,7 @@ TODO move to use-package for org-mode or org-babel
     :config
     (general-def arete-menu-map "b" '("Buffers" . arete-buffer-menu-map)))
 
-  (use-package emacs
+  (use-feature emacs
     :general
     (:prefix-command 'arete-file-menu-map
                      "f" '("Find file" . find-file)
@@ -179,7 +221,7 @@ TODO move to use-package for org-mode or org-babel
     ;; Here, we define a custom string replacement as it is recommended by which-key.
     (general-def arete-menu-map "f" '("Files" . arete-file-menu-map)))
 
-  (use-package emacs
+  (use-feature emacs
     :general
     (:prefix-command 'arete-help-menu-map
                      "B" '("Describe bindings" . describe-bindings)
@@ -195,11 +237,9 @@ TODO move to use-package for org-mode or org-babel
     (general-def arete-menu-map "h" '("Help" . arete-help-menu-map)))
 
   (use-package which-key
-    :ensure t
     :custom (which-key-mode t))
 
   (use-package meow
-    :ensure t
     :demand t
     :general
     (:keymaps '(meow-normal-state-keymap
@@ -302,7 +342,6 @@ TODO move to use-package for org-mode or org-babel
     (meow-global-mode t))
 
   ;; (use-package gruvbox-theme
-  ;;   :ensure t
   ;;   :config
   ;;   (load-theme 'gruvbox t)
   ;;   ;; autothemer-let-palette gets palette from the last loaded/evaled theme.
@@ -329,47 +368,42 @@ TODO move to use-package for org-mode or org-babel
   ;;   ;; Theme must be enabled again for modifications to work.
   ;;   (enable-theme 'gruvbox))
 
-  (use-package autothemer
-    :ensure t)
-
-  (use-package fontify-face
-    :ensure t)
+  ;; Remove when gruvbox is installed via Elpaca.
+  (use-package autothemer :demand t)
+  (use-package fontify-face)
+  (use-package rainbow-mode)
 
   (use-package gruvbox-theme
     :after autothemer
+    :demand t
     :load-path "packages/emacs-theme-gruvbox"
     :config
     (load-theme 'gruvbox t))
 
-  (use-package emacs
+  (use-feature emacs
     :config
     (custom-set-faces
      '(line-number ((t :weight light)))
      '(line-number-current-line ((t :weight light)))))
 
   (use-package solaire-mode
-    :ensure t
     :custom
     (solaire-global-mode t))
 
   (use-package rainbow-delimiters
-    :ensure t
     :hook (prog-mode . rainbow-delimiters-mode))
 
   (use-package dashboard
-    :ensure t
-    :config
+    :init
     (dashboard-setup-startup-hook))
 
   (use-package doom-modeline
-    :ensure t
-    :init
-    (setopt doom-modeline-mode t))
+    :custom
+    (doom-modeline-mode t))
 
   (use-package nyan-mode
-    :ensure t
-    :init
-    (setopt nyan-mode t))
+    :custom
+    (nyan-mode t))
 
   ;; (use-package shackle
   ;;   :config
@@ -383,7 +417,6 @@ TODO move to use-package for org-mode or org-babel
   ;; TODO: add go-back and go-forward.
   ;; See https://github.com/Wilfred/helpful/issues/250.
   (use-package helpful
-    :ensure t
     :general
     (arete-help-menu-map
      "F" '("Describe function" . helpful-function)
@@ -409,13 +442,12 @@ TODO move to use-package for org-mode or org-babel
           (switch-to-buffer buffer-or-name)
         (pop-to-buffer buffer-or-name))))
 
-  (use-package savehist
+  (use-feature savehist
     :no-require
     :custom
     (savehist-mode t))
 
   (use-package marginalia
-    :ensure t
     :custom
     (marginalia-mode t)
     :config
@@ -438,7 +470,6 @@ TODO move to use-package for org-mode or org-babel
                 :around #'+marginalia-annotate-command-with-mode))
 
   (use-package hotfuzz
-    :ensure t
     :general
     (vertico-map
      "SPC" 'minibuffer-complete-word)
@@ -466,12 +497,10 @@ TODO move to use-package for org-mode or org-babel
                 :around #'+hotfuzz--adjust-metadata--enable-history-a))
 
   (use-package vertico
-    :ensure t
     :custom
     (vertico-mode t))
 
   (use-package corfu
-    :ensure t
     :general
     (corfu-map
      "<escape>" 'corfu-reset
@@ -482,7 +511,6 @@ TODO move to use-package for org-mode or org-babel
 
   ;; TODO: embark-consult.
   (use-package embark
-    :ensure t
     :general
     ("M-SPC" 'embark-act)
     (arete-help-menu-map
@@ -503,11 +531,10 @@ TODO move to use-package for org-mode or org-babel
   ;; 	  completion-auto-help nil))
 
   (use-package consult
-    :ensure t
     :general
     ([remap recentf-open] #'consult-recent-file))
 
-  (use-package edebug
+  (use-feature edebug
     :no-require
     :general
     ;; Default key binding uses SPC.
@@ -517,7 +544,7 @@ TODO move to use-package for org-mode or org-babel
 ** Org Mode
 
 #+begin_src emacs-lisp
-  (use-package org
+  (use-feature org
     :hook (org-mode . visual-line-mode)
     :general
     (:prefix-command 'arete-notes-menu-map
@@ -540,7 +567,7 @@ TODO move to use-package for org-mode or org-babel
 Inline tasks are disabled by default, although they seem very useful for quickly defining small tasks without introducing a first-class header. Technically, they are defined as headers, but deeply nested. Try out by running ~org-inlinetask-insert-task~ on an empty line.
 
 #+begin_src emacs-lisp
-  (use-package org-inlinetask)
+  (use-feature org-inlinetask :demand t)
 #+end_src
 
 *** Look And Feel
@@ -549,7 +576,6 @@ Inline tasks are disabled by default, although they seem very useful for quickly
 
 #+begin_src emacs-lisp
   (use-package org-modern
-    :ensure t
     :after org
     :custom
     (org-modern-block-name '(("src" "λ" "λ")))
@@ -599,7 +625,6 @@ Inline tasks are disabled by default, although they seem very useful for quickly
       (cons (propertize candidate-main 'node node) node)))
 
   (use-package org-roam
-    :ensure t
     :after org
     :general
     (:prefix-command 'arete-roam-menu-map
@@ -633,8 +658,7 @@ Enable live preview for org-roam commands.
 
 #+begin_src emacs-lisp
   (use-package consult-org-roam
-    :ensure t
     :after org-roam
-    :init
+    :custom
     (consult-org-roam-mode t))
 #+end_src
