@@ -20,6 +20,8 @@
 
 ;; Use-Package
 
+;; Enable ~use-package~ statements navigation via ~imenu~. This also includes ~consult-imenu~.
+
 
 ;; [[file:config.org::*Use-Package][Use-Package:1]]
 (setopt use-package-enable-imenu-support t)
@@ -34,23 +36,21 @@
 (setopt use-package-always-defer t)
 ;; Use-Package:2 ends here
 
+
+
+;; Built-in features should be configured with ~use-feature~, so that a package manager wouldn't bother to install them. And direct ~use-package~ calls will install packages if not found.
+
+
 ;; [[file:config.org::*Use-Package][Use-Package:3]]
 (setopt use-package-always-ensure t)
-;; Use-Package:3 ends here
 
-
-
-;; Built-in features should be configured with ~use-feature~, so that ~Elpaca~ wouldn't bother to install them.
-
-
-;; [[file:config.org::*Use-Package][Use-Package:4]]
 (defmacro use-feature (name &rest args)
   "`use-package' that makes sure `ensure' is disabled."
   (declare (indent defun))
   `(use-package ,name
      :ensure nil
      ,@args))
-;; Use-Package:4 ends here
+;; Use-Package:3 ends here
 
 ;; Bootstrap
 

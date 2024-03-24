@@ -76,6 +76,8 @@ TODO move to use-package for org-mode or org-babel
 
 ** Use-Package
 
+Enable ~use-package~ statements navigation via ~imenu~. This also includes ~consult-imenu~.
+
 #+begin_src emacs-lisp
   (setopt use-package-enable-imenu-support t)
 #+end_src
@@ -86,13 +88,11 @@ Tell ~use-package~ to always load features lazily unless told otherwise. It's ni
   (setopt use-package-always-defer t)
 #+end_src
 
+Built-in features should be configured with ~use-feature~, so that a package manager wouldn't bother to install them. And direct ~use-package~ calls will install packages if not found.
+
 #+begin_src emacs-lisp
   (setopt use-package-always-ensure t)
-#+end_src
 
-Built-in features should be configured with ~use-feature~, so that ~Elpaca~ wouldn't bother to install them.
-
-#+begin_src emacs-lisp
   (defmacro use-feature (name &rest args)
     "`use-package' that makes sure `ensure' is disabled."
     (declare (indent defun))
