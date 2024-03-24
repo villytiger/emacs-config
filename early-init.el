@@ -32,6 +32,10 @@
         (vertical-scroll-bars)))
 
 (set-face-attribute 'default nil :font "Fira Code")
+(set-face-attribute 'fixed-pitch nil :font "Fira Code")
+(set-face-attribute 'variable-pitch nil :font "Fira Sans")
+(set-fontset-font t 'symbol "Noto Color Emoji")
+(set-fontset-font t 'symbol "Symbola" nil 'append)
 
 (add-to-list 'load-path (expand-file-name "lisp" user-emacs-directory))
 ;; (require 'elpaca-bootstrap)

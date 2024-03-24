@@ -36,13 +36,62 @@
 (add-hook 'text-mode-hook #'display-line-numbers-mode)
 (add-hook 'conf-mode-hook #'display-line-numbers-mode)
 (add-hook 'prog-mode-hook #'display-line-numbers-mode)
+;; Literate Config Goodies:2 ends here
 
-(require 'elpaca-bootstrap)
+;; Bootstrap
+
+
+;; [[file:config.org::*Bootstrap][Bootstrap:1]]
+(defvar elpaca-installer-version 0.7)
+(defvar elpaca-directory (expand-file-name "elpaca/" user-emacs-directory))
+(defvar elpaca-builds-directory (expand-file-name "builds/" elpaca-directory))
+(defvar elpaca-repos-directory (expand-file-name "repos/" elpaca-directory))
+(defvar elpaca-order '(elpaca :repo "https://github.com/progfolio/elpaca.git"
+                              :ref nil :depth 1
+                              :files (:defaults "elpaca-test.el" (:exclude "extensions"))
+                              :build (:not elpaca--activate-package)))
+(let* ((repo  (expand-file-name "elpaca/" elpaca-repos-directory))
+       (build (expand-file-name "elpaca/" elpaca-builds-directory))
+       (order (cdr elpaca-order))
+       (default-directory repo))
+  (add-to-list 'load-path (if (file-exists-p build) build repo))
+  (unless (file-exists-p repo)
+    (make-directory repo t)
+    (when (< emacs-major-version 28) (require 'subr-x))
+    (condition-case-unless-debug err
+        (if-let ((buffer (pop-to-buffer-same-window "*elpaca-bootstrap*"))
+                 ((zerop (apply #'call-process `("git" nil ,buffer t "clone"
+                                                 ,@(when-let ((depth (plist-get order :depth)))
+                                                     (list (format "--depth=%d" depth) "--no-single-branch"))
+                                                 ,(plist-get order :repo) ,repo))))
+                 ((zerop (call-process "git" nil buffer t "checkout"
+                                       (or (plist-get order :ref) "--"))))
+                 (emacs (concat invocation-directory invocation-name))
+                 ((zerop (call-process emacs nil buffer nil "-Q" "-L" "." "--batch"
+                                       "--eval" "(byte-recompile-directory \".\" 0 'force)")))
+                 ((require 'elpaca))
+                 ((elpaca-generate-autoloads "elpaca" repo)))
+            (progn (message "%s" (buffer-string)) (kill-buffer buffer))
+          (error "%s" (with-current-buffer buffer (buffer-string))))
+      ((error) (warn "%s" err) (delete-directory repo 'recursive))))
+  (unless (require 'elpaca-autoloads nil t)
+    (require 'elpaca)
+    (elpaca-generate-autoloads "elpaca" repo)
+    (load "./elpaca-autoloads")))
+(add-hook 'after-init-hook #'elpaca-process-queues)
+(elpaca `(,@elpaca-order))
+;; Bootstrap:1 ends here
+
+;; [[file:config.org::*Bootstrap][Bootstrap:2]]
 (elpaca elpaca-use-package (elpaca-use-package-mode))
 (elpaca-wait)
+;; Bootstrap:2 ends here
 
-(use-package general
-  :elpaca t)
+;; All the rest
+
+
+;; [[file:config.org::*All the rest][All the rest:1]]
+(use-package general :ensure t)
 (elpaca-wait)
 
 (use-package emacs
@@ -95,11 +144,11 @@
   (general-def arete-menu-map "h" '("Help" . arete-help-menu-map)))
 
 (use-package which-key
-  :elpaca t
+  :ensure t
   :custom (which-key-mode t))
 
 (use-package meow
-  :elpaca t
+  :ensure t
   :demand t
   :general
   (:keymaps '(meow-normal-state-keymap
@@ -202,7 +251,7 @@
   (meow-global-mode t))
 
 ;; (use-package gruvbox-theme
-;;   :elpaca t
+;;   :ensure t
 ;;   :config
 ;;   (load-theme 'gruvbox t)
 ;;   ;; autothemer-let-palette gets palette from the last loaded/evaled theme.
@@ -230,10 +279,10 @@
 ;;   (enable-theme 'gruvbox))
 
 (use-package autothemer
-  :elpaca t)
+  :ensure t)
 
 (use-package fontify-face
-  :elpaca t)
+  :ensure t)
 
 (use-package gruvbox-theme
   :after autothemer
@@ -248,26 +297,26 @@
    '(line-number-current-line ((t :weight light)))))
 
 (use-package solaire-mode
-  :elpaca t
+  :ensure t
   :custom
   (solaire-global-mode t))
 
 (use-package rainbow-delimiters
-  :elpaca t
+  :ensure t
   :hook (prog-mode . rainbow-delimiters-mode))
 
 (use-package dashboard
-  :elpaca t
+  :ensure t
   :config
   (dashboard-setup-startup-hook))
 
 (use-package doom-modeline
-  :elpaca t
+  :ensure t
   :init
   (setopt doom-modeline-mode t))
 
 (use-package nyan-mode
-  :elpaca t
+  :ensure t
   :init
   (setopt nyan-mode t))
 
@@ -283,7 +332,7 @@
 ;; TODO: add go-back and go-forward.
 ;; See https://github.com/Wilfred/helpful/issues/250.
 (use-package helpful
-  :elpaca t
+  :ensure t
   :general
   (arete-help-menu-map
    "F" '("Describe function" . helpful-function)
@@ -315,7 +364,7 @@ reuse it's window, otherwise create new one."
   (savehist-mode t))
 
 (use-package marginalia
-  :elpaca t
+  :ensure t
   :custom
   (marginalia-mode t)
   :config
@@ -338,7 +387,7 @@ Similar to `marginalia-annotate-command`, but also includes mode state."
               :around #'+marginalia-annotate-command-with-mode))
 
 (use-package hotfuzz
-  :elpaca t
+  :ensure t
   :general
   (vertico-map
    "SPC" 'minibuffer-complete-word)
@@ -366,12 +415,12 @@ Similar to `marginalia-annotate-command`, but also includes mode state."
               :around #'+hotfuzz--adjust-metadata--enable-history-a))
 
 (use-package vertico
-  :elpaca t
+  :ensure t
   :custom
   (vertico-mode t))
 
 (use-package corfu
-  :elpaca t
+  :ensure t
   :general
   (corfu-map
    "<escape>" 'corfu-reset
@@ -382,7 +431,7 @@ Similar to `marginalia-annotate-command`, but also includes mode state."
 
 ;; TODO: embark-consult.
 (use-package embark
-  :elpaca t
+  :ensure t
   :general
   ("M-SPC" 'embark-act)
   (arete-help-menu-map
@@ -403,12 +452,23 @@ Similar to `marginalia-annotate-command`, but also includes mode state."
 ;; 	  completion-auto-help nil))
 
 (use-package consult
-  :elpaca t
+  :ensure t
   :general
   ([remap recentf-open] #'consult-recent-file))
 
-(use-package org
+(use-package edebug
   :no-require
+  :general
+  ;; Default key binding uses SPC.
+  (edebug-mode-map "s" 'edebug-step-mode))
+;; All the rest:1 ends here
+
+;; Org Mode
+
+
+;; [[file:config.org::*Org Mode][Org Mode:1]]
+(use-package org
+  :hook (org-mode . visual-line-mode)
   :general
   (:prefix-command 'arete-notes-menu-map
                    "a" '("Agenda" . org-agenda))
@@ -416,10 +476,69 @@ Similar to `marginalia-annotate-command`, but also includes mode state."
   (org-directory "~/cloud/mobile/org")
   (org-support-shift-select t)
   (org-startup-indented t)
+  (org-catch-invisible-edits 'show-and-error)
+  ;; hide the emphasis markup (e.g. /.../ for italics, *...* for bold, etc.)
+  (org-hide-emphasis-markers t)
+  ;; formats sub- and superscripts in a WYSIWYM way
+  (org-pretty-entities t)
+  ;; uses to indicate hidden content
+  (org-ellipsis "…")
   :config
-  (general-def arete-menu-map "n" '("Notes" . arete-notes-menu-map))
-  (face-spec-set 'org-modern-block-name nil 'face-defface-spec))
+  (general-def arete-menu-map "n" '("Notes" . arete-notes-menu-map)))
+;; Org Mode:1 ends here
 
+
+
+;; Inline tasks are disabled by default, although they seem very useful for quickly defining some small tasks without introducing a first-class header. Technically, they are defined as headers, but deeply nested. Try out by running ~org-inlinetask-insert-task~ on an empty line.
+
+
+;; [[file:config.org::*Org Mode][Org Mode:2]]
+(use-package org-inlinetask)
+;; Org Mode:2 ends here
+
+;; Org Modern
+
+
+;; [[file:config.org::*Org Modern][Org Modern:1]]
+(use-package org-modern
+  :ensure t
+  :after org
+  :custom
+  (org-modern-block-name '(("src" "λ" "λ")))
+  :hook ((org-mode . org-modern-mode)
+         (org-agenda-finalize . org-modern-agenda))
+  :custom
+  (org-modern-star '("🞴" "🞳" "🞲" "🞱" "🞰"))
+  ;; modern tags are auto-misaligned
+  (org-auto-align-tags nil)
+  (org-tags-column 0)
+  :config
+  ;; The default face reduces the size of block names,
+  ;; but we want the whole block line to be smaller than normal lines,
+  ;; so without this setting block names would be twice smaller.
+  (face-spec-set 'org-modern-block-name nil 'face-defface-spec)
+  (face-spec-set 'org-modern-done
+                 '((t :inherit (org-done org-modern-label) :inverse-video t))
+                 'face-defface-spec)
+  (face-spec-set 'org-modern-tag
+                 '((t :inherit (org-tag org-modern-label) :inverse-video t))
+                 'face-defface-spec))
+;; Org Modern:1 ends here
+
+;; Org Modern Indent
+
+
+;; [[file:config.org::*Org Modern Indent][Org Modern Indent:1]]
+(use-package org-modern-indent
+  :ensure (:host github :repo "jdtsmith/org-modern-indent")
+  :after org
+  :hook ('org-mode . org-modern-indent-mode))
+;; Org Modern Indent:1 ends here
+
+;; Org Roam
+
+
+;; [[file:config.org::*Org Roam][Org Roam:1]]
 (defun +org-roam/format-width-a (node template)
   "Advice that fixes two issues with format functions:
 1. They incorrectly set width for minibuffer completion.
@@ -434,7 +553,7 @@ the resulting string becomes wider than needed."
     (cons (propertize candidate-main 'node node) node)))
 
 (use-package org-roam
-  :elpaca t
+  :ensure t
   :after org
   :general
   (:prefix-command 'arete-roam-menu-map
@@ -458,35 +577,19 @@ the resulting string becomes wider than needed."
   (advice-add 'org-roam-node-read--to-candidate
               :override '+org-roam/format-width-a)
   (org-roam-db-autosync-mode t))
+;; Org Roam:1 ends here
 
+;; Consult Org Roam
+
+;; Enable live preview for org-roam commands.
+
+;; *************** TODO Explore other consult-org-roam options
+
+
+;; [[file:config.org::*Consult Org Roam][Consult Org Roam:1]]
 (use-package consult-org-roam
-  :elpaca t
+  :ensure t
   :after org-roam
   :init
-  ;; It enables live preview for org-roam commands.
-  (setopt consult-org-roam-mode t))
-
-(use-package edebug
-  :no-require
-  :general
-  ;; Default key binding uses SPC.
-  (edebug-mode-map "s" 'edebug-step-mode))
-;; Literate Config Goodies:2 ends here
-
-;; Org Look And Feel
-
-
-;; [[file:config.org::*Org Look And Feel][Org Look And Feel:1]]
-(use-package org-modern
-  :elpaca t
-  :after org
-  :hook ((org-mode . org-modern-mode)
-         (org-agenda-finalize . org-modern-agenda)))
-;; Org Look And Feel:1 ends here
-
-;; [[file:config.org::*Org Look And Feel][Org Look And Feel:2]]
-(use-package org-modern-indent
-  :elpaca (:host github :repo "jdtsmith/org-modern-indent")
-  :after org
-  :hook ('org-mode . org-modern-indent-mode))
-;; Org Look And Feel:2 ends here
+  (consult-org-roam-mode t))
+;; Consult Org Roam:1 ends here

@@ -7,7 +7,7 @@
 
 We put some configuration options into early-init.el.
 
-#+BEGIN_SRC emacs-lisp
+#+BEGIN_src emacs-lisp
   ;; Disable GC while starting up.
   (setq gc-cons-threshold most-positive-fixnum)
   (setq gc-cons-percentage 0.6)
@@ -33,11 +33,15 @@ We put some configuration options into early-init.el.
           (vertical-scroll-bars)))
 
   (set-face-attribute 'default nil :font "Fira Code")
+  (set-face-attribute 'fixed-pitch nil :font "Fira Code")
+  (set-face-attribute 'variable-pitch nil :font "Fira Sans")
+  (set-fontset-font t 'symbol "Noto Color Emoji")
+  (set-fontset-font t 'symbol "Symbola" nil 'append)
 
   (add-to-list 'load-path (expand-file-name "lisp" user-emacs-directory))
   ;; (require 'elpaca-bootstrap)
   ;; (require 'tig-lib)
-#+END_SRC
+#+END_src
 
 * General Configuration
 :PROPERTIES:
@@ -65,7 +69,7 @@ TODO move to use-package for org-mode or org-babel
   ;; (put 'arete--literate-init 'safe-local-eval-function t)
 #+end_src
 
-#+BEGIN_SRC emacs-lisp
+#+BEGIN_src emacs-lisp
   (setopt
    read-buffer-completion-ignore-case t
    read-file-name-completion-ignore-case t
@@ -83,13 +87,62 @@ TODO move to use-package for org-mode or org-babel
   (add-hook 'text-mode-hook #'display-line-numbers-mode)
   (add-hook 'conf-mode-hook #'display-line-numbers-mode)
   (add-hook 'prog-mode-hook #'display-line-numbers-mode)
+#+end_src
 
-  (require 'elpaca-bootstrap)
+** Elpaca
+
+*** Bootstrap
+
+#+begin_src emacs-lisp
+  (defvar elpaca-installer-version 0.7)
+  (defvar elpaca-directory (expand-file-name "elpaca/" user-emacs-directory))
+  (defvar elpaca-builds-directory (expand-file-name "builds/" elpaca-directory))
+  (defvar elpaca-repos-directory (expand-file-name "repos/" elpaca-directory))
+  (defvar elpaca-order '(elpaca :repo "https://github.com/progfolio/elpaca.git"
+                                :ref nil :depth 1
+                                :files (:defaults "elpaca-test.el" (:exclude "extensions"))
+                                :build (:not elpaca--activate-package)))
+  (let* ((repo  (expand-file-name "elpaca/" elpaca-repos-directory))
+         (build (expand-file-name "elpaca/" elpaca-builds-directory))
+         (order (cdr elpaca-order))
+         (default-directory repo))
+    (add-to-list 'load-path (if (file-exists-p build) build repo))
+    (unless (file-exists-p repo)
+      (make-directory repo t)
+      (when (< emacs-major-version 28) (require 'subr-x))
+      (condition-case-unless-debug err
+          (if-let ((buffer (pop-to-buffer-same-window "*elpaca-bootstrap*"))
+                   ((zerop (apply #'call-process `("git" nil ,buffer t "clone"
+                                                   ,@(when-let ((depth (plist-get order :depth)))
+                                                       (list (format "--depth=%d" depth) "--no-single-branch"))
+                                                   ,(plist-get order :repo) ,repo))))
+                   ((zerop (call-process "git" nil buffer t "checkout"
+                                         (or (plist-get order :ref) "--"))))
+                   (emacs (concat invocation-directory invocation-name))
+                   ((zerop (call-process emacs nil buffer nil "-Q" "-L" "." "--batch"
+                                         "--eval" "(byte-recompile-directory \".\" 0 'force)")))
+                   ((require 'elpaca))
+                   ((elpaca-generate-autoloads "elpaca" repo)))
+              (progn (message "%s" (buffer-string)) (kill-buffer buffer))
+            (error "%s" (with-current-buffer buffer (buffer-string))))
+        ((error) (warn "%s" err) (delete-directory repo 'recursive))))
+    (unless (require 'elpaca-autoloads nil t)
+      (require 'elpaca)
+      (elpaca-generate-autoloads "elpaca" repo)
+      (load "./elpaca-autoloads")))
+  (add-hook 'after-init-hook #'elpaca-process-queues)
+  (elpaca `(,@elpaca-order))
+#+end_src
+
+#+begin_src emacs-lisp
   (elpaca elpaca-use-package (elpaca-use-package-mode))
   (elpaca-wait)
+#+end_src
 
-  (use-package general
-    :elpaca t)
+*** All the rest
+
+#+begin_src emacs-lisp
+  (use-package general :ensure t)
   (elpaca-wait)
 
   (use-package emacs
@@ -142,11 +195,11 @@ TODO move to use-package for org-mode or org-babel
     (general-def arete-menu-map "h" '("Help" . arete-help-menu-map)))
 
   (use-package which-key
-    :elpaca t
+    :ensure t
     :custom (which-key-mode t))
 
   (use-package meow
-    :elpaca t
+    :ensure t
     :demand t
     :general
     (:keymaps '(meow-normal-state-keymap
@@ -249,7 +302,7 @@ TODO move to use-package for org-mode or org-babel
     (meow-global-mode t))
 
   ;; (use-package gruvbox-theme
-  ;;   :elpaca t
+  ;;   :ensure t
   ;;   :config
   ;;   (load-theme 'gruvbox t)
   ;;   ;; autothemer-let-palette gets palette from the last loaded/evaled theme.
@@ -277,10 +330,10 @@ TODO move to use-package for org-mode or org-babel
   ;;   (enable-theme 'gruvbox))
 
   (use-package autothemer
-    :elpaca t)
+    :ensure t)
 
   (use-package fontify-face
-    :elpaca t)
+    :ensure t)
 
   (use-package gruvbox-theme
     :after autothemer
@@ -295,26 +348,26 @@ TODO move to use-package for org-mode or org-babel
      '(line-number-current-line ((t :weight light)))))
 
   (use-package solaire-mode
-    :elpaca t
+    :ensure t
     :custom
     (solaire-global-mode t))
 
   (use-package rainbow-delimiters
-    :elpaca t
+    :ensure t
     :hook (prog-mode . rainbow-delimiters-mode))
 
   (use-package dashboard
-    :elpaca t
+    :ensure t
     :config
     (dashboard-setup-startup-hook))
 
   (use-package doom-modeline
-    :elpaca t
+    :ensure t
     :init
     (setopt doom-modeline-mode t))
 
   (use-package nyan-mode
-    :elpaca t
+    :ensure t
     :init
     (setopt nyan-mode t))
 
@@ -330,7 +383,7 @@ TODO move to use-package for org-mode or org-babel
   ;; TODO: add go-back and go-forward.
   ;; See https://github.com/Wilfred/helpful/issues/250.
   (use-package helpful
-    :elpaca t
+    :ensure t
     :general
     (arete-help-menu-map
      "F" '("Describe function" . helpful-function)
@@ -362,7 +415,7 @@ TODO move to use-package for org-mode or org-babel
     (savehist-mode t))
 
   (use-package marginalia
-    :elpaca t
+    :ensure t
     :custom
     (marginalia-mode t)
     :config
@@ -385,7 +438,7 @@ TODO move to use-package for org-mode or org-babel
                 :around #'+marginalia-annotate-command-with-mode))
 
   (use-package hotfuzz
-    :elpaca t
+    :ensure t
     :general
     (vertico-map
      "SPC" 'minibuffer-complete-word)
@@ -413,12 +466,12 @@ TODO move to use-package for org-mode or org-babel
                 :around #'+hotfuzz--adjust-metadata--enable-history-a))
 
   (use-package vertico
-    :elpaca t
+    :ensure t
     :custom
     (vertico-mode t))
 
   (use-package corfu
-    :elpaca t
+    :ensure t
     :general
     (corfu-map
      "<escape>" 'corfu-reset
@@ -429,7 +482,7 @@ TODO move to use-package for org-mode or org-babel
 
   ;; TODO: embark-consult.
   (use-package embark
-    :elpaca t
+    :ensure t
     :general
     ("M-SPC" 'embark-act)
     (arete-help-menu-map
@@ -450,12 +503,22 @@ TODO move to use-package for org-mode or org-babel
   ;; 	  completion-auto-help nil))
 
   (use-package consult
-    :elpaca t
+    :ensure t
     :general
     ([remap recentf-open] #'consult-recent-file))
 
-  (use-package org
+  (use-package edebug
     :no-require
+    :general
+    ;; Default key binding uses SPC.
+    (edebug-mode-map "s" 'edebug-step-mode))
+#+END_src
+
+** Org Mode
+
+#+begin_src emacs-lisp
+  (use-package org
+    :hook (org-mode . visual-line-mode)
     :general
     (:prefix-command 'arete-notes-menu-map
                      "a" '("Agenda" . org-agenda))
@@ -463,10 +526,65 @@ TODO move to use-package for org-mode or org-babel
     (org-directory "~/cloud/mobile/org")
     (org-support-shift-select t)
     (org-startup-indented t)
+    (org-catch-invisible-edits 'show-and-error)
+    ;; hide the emphasis markup (e.g. /.../ for italics, *...* for bold, etc.)
+    (org-hide-emphasis-markers t)
+    ;; formats sub- and superscripts in a WYSIWYM way
+    (org-pretty-entities t)
+    ;; uses to indicate hidden content
+    (org-ellipsis "…")
     :config
-    (general-def arete-menu-map "n" '("Notes" . arete-notes-menu-map))
-    (face-spec-set 'org-modern-block-name nil 'face-defface-spec))
+    (general-def arete-menu-map "n" '("Notes" . arete-notes-menu-map)))
+#+end_src
 
+Inline tasks are disabled by default, although they seem very useful for quickly defining small tasks without introducing a first-class header. Technically, they are defined as headers, but deeply nested. Try out by running ~org-inlinetask-insert-task~ on an empty line.
+
+#+begin_src emacs-lisp
+  (use-package org-inlinetask)
+#+end_src
+
+*** Look And Feel
+
+**** Org Modern
+
+#+begin_src emacs-lisp
+  (use-package org-modern
+    :ensure t
+    :after org
+    :custom
+    (org-modern-block-name '(("src" "λ" "λ")))
+    :hook ((org-mode . org-modern-mode)
+           (org-agenda-finalize . org-modern-agenda))
+    :custom
+    (org-modern-star '("🞴" "🞳" "🞲" "🞱" "🞰"))
+    ;; modern tags are auto-misaligned
+    (org-auto-align-tags nil)
+    (org-tags-column 0)
+    :config
+    ;; The default face reduces the size of block names,
+    ;; but we want the whole block line to be smaller than normal lines,
+    ;; so without this setting block names would be twice smaller.
+    (face-spec-set 'org-modern-block-name nil 'face-defface-spec)
+    (face-spec-set 'org-modern-done
+                   '((t :inherit (org-done org-modern-label) :inverse-video t))
+                   'face-defface-spec)
+    (face-spec-set 'org-modern-tag
+                   '((t :inherit (org-tag org-modern-label) :inverse-video t))
+                   'face-defface-spec))
+#+end_src
+
+**** Org Modern Indent
+
+#+begin_src emacs-lisp
+  (use-package org-modern-indent
+    :ensure (:host github :repo "jdtsmith/org-modern-indent")
+    :after org
+    :hook ('org-mode . org-modern-indent-mode))
+#+end_src
+
+*** Org Roam
+
+#+begin_src emacs-lisp
   (defun +org-roam/format-width-a (node template)
     "Advice that fixes two issues with format functions:
   1. They incorrectly set width for minibuffer completion.
@@ -481,7 +599,7 @@ TODO move to use-package for org-mode or org-babel
       (cons (propertize candidate-main 'node node) node)))
 
   (use-package org-roam
-    :elpaca t
+    :ensure t
     :after org
     :general
     (:prefix-command 'arete-roam-menu-map
@@ -505,36 +623,18 @@ TODO move to use-package for org-mode or org-babel
     (advice-add 'org-roam-node-read--to-candidate
                 :override '+org-roam/format-width-a)
     (org-roam-db-autosync-mode t))
-
-  (use-package consult-org-roam
-    :elpaca t
-    :after org-roam
-    :init
-    ;; It enables live preview for org-roam commands.
-    (setopt consult-org-roam-mode t))
-
-  (use-package edebug
-    :no-require
-    :general
-    ;; Default key binding uses SPC.
-    (edebug-mode-map "s" 'edebug-step-mode))
-#+END_SRC
-
-** Org Mode
-
-*** Org Look And Feel
-
-#+begin_src emacs-lisp
-  (use-package org-modern
-    :elpaca t
-    :after org
-    :hook ((org-mode . org-modern-mode)
-           (org-agenda-finalize . org-modern-agenda)))
 #+end_src
 
+**** Consult Org Roam
+
+Enable live preview for org-roam commands.
+
+*************** TODO Explore other consult-org-roam options
+
 #+begin_src emacs-lisp
-  (use-package org-modern-indent
-    :elpaca (:host github :repo "jdtsmith/org-modern-indent")
-    :after org
-    :hook ('org-mode . org-modern-indent-mode))
+  (use-package consult-org-roam
+    :ensure t
+    :after org-roam
+    :init
+    (consult-org-roam-mode t))
 #+end_src
