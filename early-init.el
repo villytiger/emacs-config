@@ -12,7 +12,7 @@
 
 ;; [[file:config.org::*The rest][The rest:1]]
 ;; Disable built-in package.el.
-(setq package-enable-at-startup nil)
+;; (setq package-enable-at-startup nil)
 
 (setcar native-comp-eln-load-path
         (expand-file-name ".data/cache/eln" user-emacs-directory))

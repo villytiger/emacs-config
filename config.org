@@ -19,7 +19,7 @@ We effectively disable garbage collection while Emacs is starting up by setting 
 
 #+begin_src emacs-lisp
   ;; Disable built-in package.el.
-  (setq package-enable-at-startup nil)
+  ;; (setq package-enable-at-startup nil)
 
   (setcar native-comp-eln-load-path
           (expand-file-name ".data/cache/eln" user-emacs-directory))
@@ -167,7 +167,7 @@ https://github.com/jwiegley/use-package/pull/1029, not included in Emacs for som
 
 *** Bootstrap
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle no
   (defvar elpaca-installer-version 0.7)
   (defvar elpaca-directory (expand-file-name "elpaca/" user-emacs-directory))
   (defvar elpaca-builds-directory (expand-file-name "builds/" elpaca-directory))
@@ -210,9 +210,23 @@ https://github.com/jwiegley/use-package/pull/1029, not included in Emacs for som
 
 *** Elpaca Configuration
 
-#+begin_src emacs-lisp
+#+begin_src emacs-lisp :tangle no
   (elpaca elpaca-use-package (elpaca-use-package-mode))
   (elpaca-wait)
+#+end_src
+
+*** Package
+
+#+begin_src emacs-lisp
+  (unless (package-installed-p 'vc-use-package)
+    (package-vc-install "https://github.com/slotThe/vc-use-package"))
+  ;; must be called after setting use-package-always-ensure
+  (require 'vc-use-package)
+#+end_src
+
+#+begin_src emacs-lisp
+  (add-to-list 'package-archives
+               '("melpa" . "https://melpa.org/packages/"))
 #+end_src
 
 ** Garbage Collection Magic Hack
@@ -395,7 +409,7 @@ https://github.com/jwiegley/use-package/pull/1029, not included in Emacs for som
   (use-package rainbow-mode)
 
   (use-package gruvbox-theme
-    :ensure (:host github :repo "villytiger/emacs-theme-gruvbox")
+    :vc (:fetcher github :repo "villytiger/emacs-theme-gruvbox")
     :demand t
     :config
     (load-theme 'gruvbox t))
@@ -625,7 +639,7 @@ Inline tasks are disabled by default, although they seem very useful for quickly
 
 #+begin_src emacs-lisp
   (use-package org-modern-indent
-    :ensure (:host github :repo "jdtsmith/org-modern-indent")
+    :vc (:fetcher github :repo "jdtsmith/org-modern-indent")
     :after org
     :hook ('org-mode . org-modern-indent-mode))
 #+end_src
