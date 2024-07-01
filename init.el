@@ -1,43 +1,54 @@
-;; Global Definitions  -*- "lexical-binding": t; -*-
+;; General  -*- "lexical-binding": t; -*-
+;; :PROPERTIES:
+;; :header-args:emacs-lisp+: :tangle "init.el"
+;; :END:
+
+;; Most of the configuration goes into init.el.
 
 
-;; [[file:config.org::*Global Definitions][Global Definitions:1]]
-(defconst arete-local-dir
-  (expand-file-name "local/" user-emacs-directory)
-  "The path of a directory that contains local configuration
-where Arete can be extended and variables can be overriden.
-This is a separate repository not integrated with Arete.")
-;; Global Definitions:1 ends here
+;; [[file:config.org::*General][General:1]]
+(defgroup arete nil
+ "The group that contains all Arete options.")
+;; General:1 ends here
 
-;; Definitions
+;; Fonts
+
+
+;; [[file:config.org::*Fonts][Fonts:1]]
+(set-fontset-font t 'unicode "FiraCode Nerd Font")
+(set-fontset-font t 'emoji "Noto Color Emoji" nil 'append)
+(set-fontset-font t 'symbol "Symbola monospacified for FiraCode Nerd Font" nil 'append)
+(setq fontset-variable-pitch "-*-*-*-*-*-*-*-*-*-*-*-*-fontset-variable-pitch")
+(new-fontset fontset-variable-pitch nil)
+(set-fontset-font fontset-variable-pitch 'unicode "Fira Sans")
+(set-fontset-font fontset-variable-pitch 'emoji "Noto Color Emoji" nil 'append)
+(set-fontset-font fontset-variable-pitch 'symbol "Symbola" nil 'append)
+
+(set-face-attribute 'default nil :font "FiraCode Nerd Font" :height 110)
+(set-face-attribute 'fixed-pitch nil :font "FiraCode Nerd Font" :height 110)
+(set-face-attribute 'variable-pitch nil :font "Brygada 1918 Light" :height 140 :fontset fontset-variable-pitch)
+;; Fonts:1 ends here
+
+;; Variables
 
 ;; Here we define options such as local paths that should be set in a local config.
 
 
-;; [[file:config.org::*Definitions][Definitions:1]]
-(defgroup arete nil
-  "The group that contains all Arete options.")
-
-(defcustom arete-org-directory nil
+;; [[file:config.org::*Variables][Variables:1]]
+(defcustom arete-org-dir nil
   "The default directory for org files."
   :group 'arete
   :type 'directory)
+;; Variables:1 ends here
 
-(defcustom arete-org-roam-directory nil
-  "The directory that contains org-roam files.
-If not set, ~arete-org-directory~ will be used instead."
-  :group 'arete
-  :type 'directory)
-;; Definitions:1 ends here
+;; Pre Init
 
-;; Local
-
-;; If the local config directory contains ~vars.el~ file, it will be evaluated, so that the local config could set the needed variables.
+;; If the local config directory contains ~config.el~ file, it will be evaluated, so that the local config could set the needed variables and hooks.
 
 
-;; [[file:config.org::*Local][Local:1]]
-(load (expand-file-name "vars" arete-local-dir) t)
-;; Local:1 ends here
+;; [[file:config.org::*Pre Init][Pre Init:1]]
+(load (expand-file-name "config" arete-config-dir) t)
+;; Pre Init:1 ends here
 
 ;; Literate Config Goodies
 
@@ -141,6 +152,29 @@ If not set, ~arete-org-directory~ will be used instead."
   (gcmh-mode t))
 ;; Garbage Collection Magic Hack:1 ends here
 
+;; No littering
+
+
+;; [[file:config.org::*No littering][No littering:1]]
+(use-package no-littering
+  :demand t
+  :custom
+  (no-littering-etc-directory
+   (expand-file-name "etc/" arete-local-dir))
+  (no-littering-var-directory
+    (expand-file-name "data/" arete-local-dir)))
+;; No littering:1 ends here
+
+;; Recentf
+
+
+;; [[file:config.org::*Recentf][Recentf:1]]
+(use-feature recentf
+  :config
+  (add-to-list 'recentf-exclude
+               (recentf-expand-file-name arete-local-dir)))
+;; Recentf:1 ends here
+
 ;; All the rest
 
 
@@ -202,7 +236,27 @@ If not set, ~arete-org-directory~ will be used instead."
            ("o" "Describe symbol" . describe-symbol)
            ("v" "Describe variable" . describe-variable)
            ("x" "Describe command" . describe-command))
+;; All the rest:2 ends here
 
+;; [[file:config.org::*All the rest][All the rest:3]]
+(define-prefix-command 'arete-local-map)
+(define-key arete-menu-map "m" '("Local Menu" . arete-local-map))
+
+(defmacro arete-local-map-define (mode keymap)
+  (define-prefix-command keymap)
+  (let ((hook-name (concat (symbol-name mode) "-hook"))
+        (toggle-name (concat (symbol-name keymap) "-toggle")))
+    `(progn
+       (defun ,(intern toggle-name) ()
+         (if (eq major-mode ',mode)
+           (set-keymap-parent arete-local-map ,keymap)
+           (set-keymap-parent arete-local-map nil)))
+       (add-hook ',(intern hook-name) #',(intern toggle-name)))))
+
+(arete-local-map-define org-mode +org-local-map)
+;; All the rest:3 ends here
+
+;; [[file:config.org::*All the rest][All the rest:4]]
 (use-package which-key
   :custom (which-key-mode t))
 
@@ -478,23 +532,25 @@ Similar to `marginalia-annotate-command`, but also includes mode state."
   :bind
   ;; Default key binding uses SPC.
   (:map edebug-mode-map ("s" . edebug-step-mode)))
-;; All the rest:2 ends here
+;; All the rest:4 ends here
 
 ;; Org Mode
 
 
 ;; [[file:config.org::*Org Mode][Org Mode:1]]
 (use-feature org
-  :hook (org-mode . visual-line-mode)
   :bind
   (:map arete-menu-map
         ("n" "Notes" . arete-notes-menu-map))
   (:map arete-notes-menu-map
         ("a" "Agenda" . org-agenda))
+  (:map +org-local-map
+        ("." "Org Heading" . consult-org-heading))
   :custom
-  (org-directory arete-org-directory)
+  (org-directory arete-org-dir)
   (org-support-shift-select t)
   (org-startup-indented t)
+  (org-indent-indentation-per-level 1)
   (org-catch-invisible-edits 'show-and-error)
   ;; hide the emphasis markup (e.g. /.../ for italics, *...* for bold, etc.)
   (org-hide-emphasis-markers t)
@@ -502,8 +558,20 @@ Similar to `marginalia-annotate-command`, but also includes mode state."
   (org-pretty-entities t)
   ;; uses to indicate hidden content
   (org-ellipsis "…")
+  ;; I don't want to type "yes" every time I execute org-babel block.
+  (org-confirm-babel-evaluate nil)
+  ;; It's enough to have "C-c C-v e".
+  (org-babel-no-eval-on-ctrl-c-ctrl-c t)
+  :custom-face
+  ;; By default it inherits shadow face, which makes the text grey.
+  ;; I want text inside blocks to look like normal text.
+  (org-block ((t :inherit default)))
+  :hook
+  ((org-mode . visual-line-mode))
+  ;;  (org-mode . arete-local-map-update(org-mode +org-local-map)))
   :init
-  (define-prefix-command 'arete-notes-menu-map))
+  (define-prefix-command 'arete-notes-menu-map)
+  (arete-local-map-define org-mode +org-local-map))
 ;; Org Mode:1 ends here
 
 
@@ -526,7 +594,9 @@ Similar to `marginalia-annotate-command`, but also includes mode state."
   :hook ((org-mode . org-modern-mode)
          (org-agenda-finalize . org-modern-agenda))
   :custom
-  (org-modern-star '("🞴" "🞳" "🞲" "🞱" "🞰"))
+  (org-modern-hide-stars nil)
+  (org-modern-star 'replace)
+  (org-modern-replace-stars '("🞖" "🞋" "🞜" "▣" "◉" "◈" "□" "○" "◇"))
   ;; modern tags are auto-misaligned
   (org-auto-align-tags nil)
   (org-tags-column 0)
@@ -552,6 +622,16 @@ Similar to `marginalia-annotate-command`, but also includes mode state."
   :after org
   :hook ('org-mode . org-modern-indent-mode))
 ;; Org Modern Indent:1 ends here
+
+;; Org Sticky Header
+
+
+;; [[file:config.org::*Org Sticky Header][Org Sticky Header:1]]
+(use-package org-sticky-header
+  :custom
+  (org-sticky-header-full-path 'full)
+  (org-sticky-header-heading-star "》"))
+;; Org Sticky Header:1 ends here
 
 ;; Org Roam
 
@@ -586,10 +666,9 @@ Similar to `marginalia-annotate-command`, but also includes mode state."
         ("m" "Goto tomorrow" . org-roam-dailies-goto-tomorrow)
         ("y" "Goto yesterday" . org-roam-dailies-goto-yesterday))
   :custom
-  (org-roam-directory (if arete-org-roam-directory
-                          arete-org-roam-directory
-                        arete-org-directory))
+  (org-roam-directory org-directory)
   (org-roam-completion-everywhere t)
+  (org-roam-db-autosync-mode t)
   (org-roam-node-display-template
    (concat "${title:*} " (propertize "${tags}" 'face 'org-tag)))
   :init
@@ -597,8 +676,7 @@ Similar to `marginalia-annotate-command`, but also includes mode state."
   (define-prefix-command 'arete-dailies-menu-map)
   :config
   (advice-add 'org-roam-node-read--to-candidate
-              :override '+org-roam/format-width-a)
-  (org-roam-db-autosync-mode t))
+              :override '+org-roam/format-width-a))
 ;; Org Roam:1 ends here
 
 ;; Consult Org Roam
@@ -615,11 +693,123 @@ Similar to `marginalia-annotate-command`, but also includes mode state."
   (consult-org-roam-mode t))
 ;; Consult Org Roam:1 ends here
 
+;; Margins
+
+
+;; [[file:config.org::*Margins][Margins:1]]
+(defgroup arete-margin nil
+  "Minor mode for customizing margin background"
+  :prefix "arete-margin-"
+  :group 'faces)
+
+(defface arete-margin
+  nil
+  "Face for the margins when special overlay is activated."
+  :group 'arete-magrin)
+
+(defcustom arete-margin-remap-list
+  '(org-indent
+    org-modern-indent-bracket-line)
+  "TODO"
+  :group 'arete-margin
+  :type '(repeat face))
+;; Margins:1 ends here
+
+;; [[file:config.org::*Margins][Margins:2]]
+(defun arete-margin--adjust-color (color)
+  (apply 'format "#%04x%04x%04x"
+         (mapcar (lambda (c) (if (> c 65280) (- c 256) (+ c 256)))
+                 (color-values color))))
+
+(defvar-local arete-margin--overlay nil)
+(defvar-local arete-margin--remap-default nil)
+(defvar-local arete-margin--remap-other nil)
+
+(defun arete-margin--activate-mode ()
+  ;; Make overlay with original background color.
+  (let ((color (arete-margin--adjust-color (face-background 'default))))
+    (setq arete-margin--overlay
+          (make-overlay (point-min) (point-max) nil nil t))
+    ;; Put it behind hl-line.
+    (overlay-put arete-margin--overlay 'priority -1000)
+    (overlay-put arete-margin--overlay 'face
+                 `(:background ,color :extend t)))
+  ;; Explicitly set background color for faces that are not covered by overlay.
+  (dolist (face (seq-filter 'facep arete-margin-remap-list))
+    (let ((color (arete-margin--adjust-color (face-background face nil 'default))))
+      (push (face-remap-add-relative face `(:background ,color))
+            arete-margin--remap-other)))
+  ;; Finally set background color for margins.
+  (setq arete-margin--remap-default
+        (face-remap-add-relative 'default 'arete-margin)))
+
+(defun arete-margin--deactivate-mode ()
+  (when arete-margin--remap-default
+    (face-remap-remove-relative arete-margin--remap-default)
+    (setq arete-margin--remap-default nil))
+  (progn
+    (dolist (r arete-margin--remap-other)
+      (face-remap-remove-relative r))
+    (setq arete-margin--remap-other nil))
+  (when arete-margin--overlay
+    (delete-overlay arete-margin--overlay)
+    (setq arete-margin--overlay nil)))
+
+(define-minor-mode arete-margin-mode
+  "Toggle Arete Margin Mode.
+  A minor mode that allows to set background color for margins
+  leaving text background as is."
+  :group 'arete-margin
+  (if arete-margin-mode
+      (arete-margin--activate-mode)
+    (arete-margin--deactivate-mode)))
+
+(defun arete-margin--update-theme (theme &rest _)
+  (when (bound-and-true-p arete-margin-mode)
+    (arete-margin-mode -1)
+    (arete-margin-mode +1)))
+
+(advice-add #'load-theme :after #'arete-margin--update-theme)
+;; Margins:2 ends here
+
+;; Olivetti
+
+;; Also there are writeroom, visual-fill-column and perfect-margin. But I haven't tried them.
+
+
+;; [[file:config.org::*Olivetti][Olivetti:1]]
+(use-package olivetti
+  :bind
+  (:map olivetti-mode-map
+        ("C-c \\" . +olivetti-reset-width))
+  :custom
+  (olivetti-mode-on-hook nil)
+  (olivetti-recall-visual-line-mode-entry-state nil)
+  (olivetti-body-width 100)
+  :hook
+  ((prog-mode text-mode conf-mode)
+   (olivetti-mode . arete-margin-mode))
+  :config
+  (defun +olivetti-reset-width ()
+    "Set body width to the default value."
+    (interactive)
+    (olivetti-set-width (default-value 'olivetti-body-width))))
+;; Olivetti:1 ends here
+
+;; Mixed Pitch
+
+
+;; [[file:config.org::*Mixed Pitch][Mixed Pitch:1]]
+(use-package mixed-pitch
+  :custom
+  (mixed-pitch-set-height))
+;; Mixed Pitch:1 ends here
+
 ;; Local Post Init
 
 ;; If the local config directory contains ~post.el~ file, it will be evaluated, so that the local config could make any customization when Arete is configured.
 
 
 ;; [[file:config.org::*Local Post Init][Local Post Init:1]]
-(load (expand-file-name "post" arete-local-dir) t)
+(load (expand-file-name "post" arete-config-dir) t)
 ;; Local Post Init:1 ends here

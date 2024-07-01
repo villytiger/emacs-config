@@ -1,6 +1,6 @@
 #+PROPERTY: header-args:emacs-lisp :comments both :results discard silent
 
-* Early Configuration
+* Early
 :PROPERTIES:
 :header-args:emacs-lisp+: :tangle "early-init.el"
 :END:
@@ -15,14 +15,41 @@ We effectively disable garbage collection while Emacs is starting up by setting 
   (setq gc-cons-threshold #x40000000)
 #+end_src
 
+** Constants
+
+#+begin_src emacs-lisp
+  (defconst xdg-config-home
+    (or (when-let ((dir (getenv "XDG_CONFIG_HOME")))
+          (file-name-as-directory dir))
+        (when-let ((dir (getenv "HOME")))
+          (expand-file-name ".config/" dir))
+        (error "Cannot detect configuration directory")))
+
+  (defconst arete-config-dir
+    (expand-file-name "arete/" xdg-config-home)
+    "The directory that contains local configuration
+  where Arete can be extended and variables can be overriden.
+  This is a separate repository not integrated with Arete.")
+
+  (defconst arete-local-dir
+    (expand-file-name ".local/" user-emacs-directory)
+    "The directory that contains all local automatically created files.")
+
+  (defconst arete-cache-dir
+    (expand-file-name "cache" arete-local-dir))
+#+end_src
+
+** Options
+
+#+begin_src emacs-lisp
+  (setopt native-comp-async-report-warnings-errors 'silent)
+#+end_src
+
 ** The rest
 
 #+begin_src emacs-lisp
-  ;; Disable built-in package.el.
-  ;; (setq package-enable-at-startup nil)
-
-  (setcar native-comp-eln-load-path
-          (expand-file-name ".data/cache/eln" user-emacs-directory))
+  (startup-redirect-eln-cache
+   (expand-file-name "eln" arete-cache-dir))
 
   (setq inhibit-startup-screen t)
 
@@ -36,64 +63,57 @@ We effectively disable garbage collection while Emacs is starting up by setting 
           (horizontal-scroll-bars)
           (vertical-scroll-bars)))
 
-  (set-face-attribute 'default nil :font "Fira Code")
-  (set-face-attribute 'fixed-pitch nil :font "Fira Code")
-  (set-face-attribute 'variable-pitch nil :font "Fira Sans")
-  (set-fontset-font t 'symbol "Noto Color Emoji")
-  (set-fontset-font t 'symbol "Symbola" nil 'append)
-
   (add-to-list 'load-path (expand-file-name "lisp" user-emacs-directory))
-  ;; (require 'elpaca-bootstrap)
-  ;; (require 'tig-lib)
 #+END_src
 
-* General Configuration
+* General
 :PROPERTIES:
 :header-args:emacs-lisp+: :tangle "init.el"
 :END:
 
 Most of the configuration goes into init.el.
 
-** Variables
-
-*** Global Definitions
-
 #+begin_src emacs-lisp
-  (defconst arete-local-dir
-    (expand-file-name "local/" user-emacs-directory)
-    "The path of a directory that contains local configuration
-  where Arete can be extended and variables can be overriden.
-  This is a separate repository not integrated with Arete.")
+   (defgroup arete nil
+    "The group that contains all Arete options.")
 #+end_src
 
-*** Customization
+** Fonts
 
-**** Definitions
+#+begin_src emacs-lisp
+  (set-fontset-font t 'unicode "FiraCode Nerd Font")
+  (set-fontset-font t 'emoji "Noto Color Emoji" nil 'append)
+  (set-fontset-font t 'symbol "Symbola monospacified for FiraCode Nerd Font" nil 'append)
+  (setq fontset-variable-pitch "-*-*-*-*-*-*-*-*-*-*-*-*-fontset-variable-pitch")
+  (new-fontset fontset-variable-pitch nil)
+  (set-fontset-font fontset-variable-pitch 'unicode "Fira Sans")
+  (set-fontset-font fontset-variable-pitch 'emoji "Noto Color Emoji" nil 'append)
+  (set-fontset-font fontset-variable-pitch 'symbol "Symbola" nil 'append)
+
+  (set-face-attribute 'default nil :font "FiraCode Nerd Font" :height 110)
+  (set-face-attribute 'fixed-pitch nil :font "FiraCode Nerd Font" :height 110)
+  (set-face-attribute 'variable-pitch nil :font "Brygada 1918 Light" :height 140 :fontset fontset-variable-pitch)
+#+end_src
+
+** Local Config
+
+*** Variables
 
 Here we define options such as local paths that should be set in a local config.
 
 #+begin_src emacs-lisp
-  (defgroup arete nil
-    "The group that contains all Arete options.")
-
-  (defcustom arete-org-directory nil
+  (defcustom arete-org-dir nil
     "The default directory for org files."
-    :group 'arete
-    :type 'directory)
-
-  (defcustom arete-org-roam-directory nil
-    "The directory that contains org-roam files.
-  If not set, ~arete-org-directory~ will be used instead."
     :group 'arete
     :type 'directory)
 #+end_src
 
-**** Local
+*** Pre Init
 
-If the local config directory contains ~vars.el~ file, it will be evaluated, so that the local config could set the needed variables.
+If the local config directory contains ~config.el~ file, it will be evaluated, so that the local config could set the needed variables and hooks.
 
 #+begin_src emacs-lisp
-  (load (expand-file-name "vars" arete-local-dir) t)
+  (load (expand-file-name "config" arete-config-dir) t)
 #+end_src
 
 ** Literate Config Goodies
@@ -237,6 +257,27 @@ https://github.com/jwiegley/use-package/pull/1029, not included in Emacs for som
     (gcmh-mode t))
 #+end_src
 
+** No littering
+
+#+begin_src emacs-lisp
+  (use-package no-littering
+    :demand t
+    :custom
+    (no-littering-etc-directory
+     (expand-file-name "etc/" arete-local-dir))
+    (no-littering-var-directory
+      (expand-file-name "data/" arete-local-dir)))
+#+end_src
+
+** Recentf
+
+#+begin_src emacs-lisp
+  (use-feature recentf
+    :config
+    (add-to-list 'recentf-exclude
+                 (recentf-expand-file-name arete-local-dir)))
+#+end_src
+
 ** All the rest
 
 #+BEGIN_src emacs-lisp
@@ -297,7 +338,27 @@ https://github.com/jwiegley/use-package/pull/1029, not included in Emacs for som
              ("o" "Describe symbol" . describe-symbol)
              ("v" "Describe variable" . describe-variable)
              ("x" "Describe command" . describe-command))
+#+end_src
 
+#+begin_src emacs-lisp
+  (define-prefix-command 'arete-local-map)
+  (define-key arete-menu-map "m" '("Local Menu" . arete-local-map))
+
+  (defmacro arete-local-map-define (mode keymap)
+    (define-prefix-command keymap)
+    (let ((hook-name (concat (symbol-name mode) "-hook"))
+          (toggle-name (concat (symbol-name keymap) "-toggle")))
+      `(progn
+         (defun ,(intern toggle-name) ()
+           (if (eq major-mode ',mode)
+             (set-keymap-parent arete-local-map ,keymap)
+             (set-keymap-parent arete-local-map nil)))
+         (add-hook ',(intern hook-name) #',(intern toggle-name)))))
+
+  (arete-local-map-define org-mode +org-local-map)
+#+end_src
+
+#+begin_src emacs-lisp
   (use-package which-key
     :custom (which-key-mode t))
 
@@ -579,16 +640,18 @@ https://github.com/jwiegley/use-package/pull/1029, not included in Emacs for som
 
 #+begin_src emacs-lisp
   (use-feature org
-    :hook (org-mode . visual-line-mode)
     :bind
     (:map arete-menu-map
           ("n" "Notes" . arete-notes-menu-map))
     (:map arete-notes-menu-map
           ("a" "Agenda" . org-agenda))
+    (:map +org-local-map
+          ("." "Org Heading" . consult-org-heading))
     :custom
-    (org-directory arete-org-directory)
+    (org-directory arete-org-dir)
     (org-support-shift-select t)
     (org-startup-indented t)
+    (org-indent-indentation-per-level 1)
     (org-catch-invisible-edits 'show-and-error)
     ;; hide the emphasis markup (e.g. /.../ for italics, *...* for bold, etc.)
     (org-hide-emphasis-markers t)
@@ -596,8 +659,20 @@ https://github.com/jwiegley/use-package/pull/1029, not included in Emacs for som
     (org-pretty-entities t)
     ;; uses to indicate hidden content
     (org-ellipsis "…")
+    ;; I don't want to type "yes" every time I execute org-babel block.
+    (org-confirm-babel-evaluate nil)
+    ;; It's enough to have "C-c C-v e".
+    (org-babel-no-eval-on-ctrl-c-ctrl-c t)
+    :custom-face
+    ;; By default it inherits shadow face, which makes the text grey.
+    ;; I want text inside blocks to look like normal text.
+    (org-block ((t :inherit default)))
+    :hook
+    ((org-mode . visual-line-mode))
+    ;;  (org-mode . arete-local-map-update(org-mode +org-local-map)))
     :init
-    (define-prefix-command 'arete-notes-menu-map))
+    (define-prefix-command 'arete-notes-menu-map)
+    (arete-local-map-define org-mode +org-local-map))
 #+end_src
 
 Inline tasks are disabled by default, although they seem very useful for quickly defining small tasks without introducing a first-class header. Technically, they are defined as headers, but deeply nested. Try out by running ~org-inlinetask-insert-task~ on an empty line.
@@ -618,7 +693,9 @@ Inline tasks are disabled by default, although they seem very useful for quickly
     :hook ((org-mode . org-modern-mode)
            (org-agenda-finalize . org-modern-agenda))
     :custom
-    (org-modern-star '("🞴" "🞳" "🞲" "🞱" "🞰"))
+    (org-modern-hide-stars nil)
+    (org-modern-star 'replace)
+    (org-modern-replace-stars '("🞖" "🞋" "🞜" "▣" "◉" "◈" "□" "○" "◇"))
     ;; modern tags are auto-misaligned
     (org-auto-align-tags nil)
     (org-tags-column 0)
@@ -642,6 +719,15 @@ Inline tasks are disabled by default, although they seem very useful for quickly
     :vc (:fetcher github :repo "jdtsmith/org-modern-indent")
     :after org
     :hook ('org-mode . org-modern-indent-mode))
+#+end_src
+
+**** Org Sticky Header
+
+#+begin_src emacs-lisp
+  (use-package org-sticky-header
+    :custom
+    (org-sticky-header-full-path 'full)
+    (org-sticky-header-heading-star "》"))
 #+end_src
 
 *** Org Roam
@@ -676,10 +762,9 @@ Inline tasks are disabled by default, although they seem very useful for quickly
           ("m" "Goto tomorrow" . org-roam-dailies-goto-tomorrow)
           ("y" "Goto yesterday" . org-roam-dailies-goto-yesterday))
     :custom
-    (org-roam-directory (if arete-org-roam-directory
-                            arete-org-roam-directory
-                          arete-org-directory))
+    (org-roam-directory org-directory)
     (org-roam-completion-everywhere t)
+    (org-roam-db-autosync-mode t)
     (org-roam-node-display-template
      (concat "${title:*} " (propertize "${tags}" 'face 'org-tag)))
     :init
@@ -687,8 +772,7 @@ Inline tasks are disabled by default, although they seem very useful for quickly
     (define-prefix-command 'arete-dailies-menu-map)
     :config
     (advice-add 'org-roam-node-read--to-candidate
-                :override '+org-roam/format-width-a)
-    (org-roam-db-autosync-mode t))
+                :override '+org-roam/format-width-a))
 #+end_src
 
 **** Consult Org Roam
@@ -704,10 +788,121 @@ Enable live preview for org-roam commands.
     (consult-org-roam-mode t))
 #+end_src
 
+** Look And Feel
+
+*** Margins
+
+#+begin_src emacs-lisp
+  (defgroup arete-margin nil
+    "Minor mode for customizing margin background"
+    :prefix "arete-margin-"
+    :group 'faces)
+
+  (defface arete-margin
+    nil
+    "Face for the margins when special overlay is activated."
+    :group 'arete-magrin)
+
+  (defcustom arete-margin-remap-list
+    '(org-indent
+      org-modern-indent-bracket-line)
+    "TODO"
+    :group 'arete-margin
+    :type '(repeat face))
+#+end_src
+
+#+begin_src emacs-lisp
+  (defun arete-margin--adjust-color (color)
+    (apply 'format "#%04x%04x%04x"
+           (mapcar (lambda (c) (if (> c 65280) (- c 256) (+ c 256)))
+                   (color-values color))))
+
+  (defvar-local arete-margin--overlay nil)
+  (defvar-local arete-margin--remap-default nil)
+  (defvar-local arete-margin--remap-other nil)
+
+  (defun arete-margin--activate-mode ()
+    ;; Make overlay with original background color.
+    (let ((color (arete-margin--adjust-color (face-background 'default))))
+      (setq arete-margin--overlay
+            (make-overlay (point-min) (point-max) nil nil t))
+      ;; Put it behind hl-line.
+      (overlay-put arete-margin--overlay 'priority -1000)
+      (overlay-put arete-margin--overlay 'face
+                   `(:background ,color :extend t)))
+    ;; Explicitly set background color for faces that are not covered by overlay.
+    (dolist (face (seq-filter 'facep arete-margin-remap-list))
+      (let ((color (arete-margin--adjust-color (face-background face nil 'default))))
+        (push (face-remap-add-relative face `(:background ,color))
+              arete-margin--remap-other)))
+    ;; Finally set background color for margins.
+    (setq arete-margin--remap-default
+          (face-remap-add-relative 'default 'arete-margin)))
+
+  (defun arete-margin--deactivate-mode ()
+    (when arete-margin--remap-default
+      (face-remap-remove-relative arete-margin--remap-default)
+      (setq arete-margin--remap-default nil))
+    (progn
+      (dolist (r arete-margin--remap-other)
+        (face-remap-remove-relative r))
+      (setq arete-margin--remap-other nil))
+    (when arete-margin--overlay
+      (delete-overlay arete-margin--overlay)
+      (setq arete-margin--overlay nil)))
+
+  (define-minor-mode arete-margin-mode
+    "Toggle Arete Margin Mode.
+    A minor mode that allows to set background color for margins
+    leaving text background as is."
+    :group 'arete-margin
+    (if arete-margin-mode
+        (arete-margin--activate-mode)
+      (arete-margin--deactivate-mode)))
+
+  (defun arete-margin--update-theme (theme &rest _)
+    (when (bound-and-true-p arete-margin-mode)
+      (arete-margin-mode -1)
+      (arete-margin-mode +1)))
+
+  (advice-add #'load-theme :after #'arete-margin--update-theme)
+#+end_src
+
+*** Olivetti
+
+Also there are writeroom, visual-fill-column and perfect-margin. But I haven't tried them.
+
+#+begin_src emacs-lisp
+  (use-package olivetti
+    :bind
+    (:map olivetti-mode-map
+          ("C-c \\" . +olivetti-reset-width))
+    :custom
+    (olivetti-mode-on-hook nil)
+    (olivetti-recall-visual-line-mode-entry-state nil)
+    (olivetti-body-width 100)
+    :hook
+    ((prog-mode text-mode conf-mode)
+     (olivetti-mode . arete-margin-mode))
+    :config
+    (defun +olivetti-reset-width ()
+      "Set body width to the default value."
+      (interactive)
+      (olivetti-set-width (default-value 'olivetti-body-width))))
+#+end_src
+
+*** Mixed Pitch
+
+#+begin_src emacs-lisp
+  (use-package mixed-pitch
+    :custom
+    (mixed-pitch-set-height t))
+#+end_src
+
 ** Local Post Init
 
 If the local config directory contains ~post.el~ file, it will be evaluated, so that the local config could make any customization when Arete is configured.
 
 #+begin_src emacs-lisp
-  (load (expand-file-name "post" arete-local-dir) t)
+  (load (expand-file-name "post" arete-config-dir) t)
 #+end_src
